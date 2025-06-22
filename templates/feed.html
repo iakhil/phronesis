@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic }} - Phronesis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feed-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .topic-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+    }
+
+    .back-btn {
+        background: rgba(255,255,255,0.3);
+        color: white;
+        border: 2px solid rgba(255,255,255,0.3);
+        padding: 10px 20px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+
+    .back-btn:hover {
+        background: rgba(255,255,255,0.4);
+        transform: translateY(-2px);
+    }
+
+    .content-feed {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .content-item {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.2);
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+    }
+
+    .content-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    }
+
+    .content-type {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .content-text {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        color: #4a5568;
+        margin-bottom: 20px;
+    }
+
+    .content-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 15px;
+        border-top: 2px solid rgba(102, 126, 234, 0.1);
+        font-size: 0.9rem;
+        color: #718096;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        padding: 40px;
+        color: white;
+    }
+
+    .loading-spinner .spinner {
+        display: inline-block;
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255,255,255,.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 15px;
+    }
+
+    .error-message {
+        background: rgba(248, 113, 113, 0.9);
+        color: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin: 20px 0;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    .refresh-btn {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        margin-top: 15px;
+    }
+
+    .content-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .action-btn {
+        background: rgba(102, 126, 234, 0.1);
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        color: #667eea;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover {
+        background: rgba(102, 126, 234, 0.2);
+        transform: scale(1.05);
+    }
+
+    .type-fact { border-left: 4px solid #3b82f6; }
+    .type-story { border-left: 4px solid #8b5cf6; }
+    .type-question { border-left: 4px solid #10b981; }
+    .type-tip { border-left: 4px solid #f59e0b; }
+    .type-challenge { border-left: 4px solid #ef4444; }
+
+    @media (max-width: 768px) {
+        .feed-header {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .topic-title {
+            font-size: 1.5rem;
+        }
+        
+        .content-item {
+            padding: 20px;
+        }
+    }
+
+    @keyframes slideInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card feed-header">
+    <h1 class="topic-title">
+        📚 {{ topic }}
+    </h1>
+    <a href="/" class="back-btn">← Back to Topics</a>
+</div>
+
+<div class="content-feed" id="contentFeed">
+    <!-- Content will be loaded here -->
+</div>
+
+<div class="loading-spinner" id="loadingSpinner">
+    <div class="spinner"></div>
+    <p>Generating engaging content...</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const topic = '{{ topic }}';
+    const contentTypes = ['fact', 'story', 'question', 'tip', 'challenge'];
+    let isLoading = false;
+    let contentCount = 0;
+
+    async function generateContent(type = null) {
+        if (isLoading) return;
+        
+        isLoading = true;
+        const spinner = document.getElementById('loadingSpinner');
+        spinner.style.display = 'block';
+
+        // If no type specified, pick one randomly
+        if (!type) {
+            type = contentTypes[Math.floor(Math.random() * contentTypes.length)];
+        }
+
+        try {
+            const response = await fetch('/api/generate-content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    type: type
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+
+            addContentToFeed(data);
+            contentCount++;
+            
+        } catch (error) {
+            console.error('Error generating content:', error);
+            showError(error.message);
+        } finally {
+            isLoading = false;
+            spinner.style.display = 'none';
+        }
+    }
+
+    function addContentToFeed(content) {
+        const feed = document.getElementById('contentFeed');
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `content-item type-${content.type}`;
+        
+        const typeEmoji = {
+            'fact': '💡',
+            'story': '📖',
+            'question': '❓',
+            'tip': '💡',
+            'challenge': '🧩'
+        };
+
+        contentDiv.innerHTML = `
+            <div class="content-type">
+                ${typeEmoji[content.type]} ${content.type.toUpperCase()}
+            </div>
+            <div class="content-text">${content.content}</div>
+            <div class="content-meta">
+                <span>Generated ${formatTime(content.timestamp)}</span>
+                <div class="content-actions">
+                    <button class="action-btn" onclick="shareContent(this)">📤 Share</button>
+                    <button class="action-btn" onclick="likeContent(this)">👍 Like</button>
+                </div>
+            </div>
+        `;
+
+        feed.appendChild(contentDiv);
+        
+        // Auto-scroll removed - users will stay at their current scroll position
+    }
+
+    function showError(message) {
+        const feed = document.getElementById('contentFeed');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-message';
+        errorDiv.innerHTML = `
+            <p>⚠️ ${message}</p>
+            <button class="btn refresh-btn" onclick="generateContent()">Try Again</button>
+        `;
+        feed.appendChild(errorDiv);
+    }
+
+    function formatTime(timestamp) {
+        const now = Date.now() / 1000;
+        const diff = now - timestamp;
+        
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    function shareContent(button) {
+        const content = button.closest('.content-item').querySelector('.content-text').textContent;
+        
+        if (navigator.share) {
+            navigator.share({
+                title: `Interesting ${topic} content`,
+                text: content,
+                url: window.location.href
+            });
+        } else {
+            navigator.clipboard.writeText(content).then(() => {
+                button.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    button.innerHTML = '📤 Share';
+                }, 2000);
+            });
+        }
+    }
+
+    function likeContent(button) {
+        button.textContent = '❤️ Liked!';
+        button.style.background = 'rgba(239, 68, 68, 0.1)';
+        button.style.color = '#ef4444';
+        button.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+        button.disabled = true;
+    }
+
+    // Infinite scroll functionality
+    function handleScroll() {
+        const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+        
+        if (scrollTop + clientHeight >= scrollHeight - 1000 && !isLoading) {
+            generateContent();
+        }
+    }
+
+    // Initialize the feed
+    document.addEventListener('DOMContentLoaded', function() {
+        // Generate initial content
+        generateContent();
+        
+        // Add scroll listener for infinite scroll
+        window.addEventListener('scroll', handleScroll);
+        
+        // Generate content every 10 seconds if user is active
+        setInterval(() => {
+            if (!isLoading && document.visibilityState === 'visible') {
+                // Only auto-generate if less than 10 items
+                if (contentCount < 10) {
+                    generateContent();
+                }
+            }
+        }, 10000);
+    });
+
+    // Handle visibility change to pause/resume auto-generation
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            // User came back, generate fresh content
+            setTimeout(generateContent, 1000);
+        }
+    });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === ' ' && !isLoading) {
+            e.preventDefault();
+            generateContent();
+        }
+        if (e.key === 'Escape') {
+            window.location.href = '/';
+        }
+    });
+</script>
+{% endblock %} 
