@@ -4,19 +4,43 @@
 
 {% block extra_css %}
 <style>
+    body {
+        overflow: hidden; /* Prevent default scrolling */
+        background: linear-gradient(135deg, #000000 0%, #0a0a0a 25%, #111111 75%, #000000 100%);
+    }
+
+    .feed-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: 
+            radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.03) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+            linear-gradient(135deg, #000000 0%, #0a0a0a 25%, #111111 50%, #0a0a0a 75%, #000000 100%);
+    }
+
     .feed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 32px;
-        flex-wrap: wrap;
-        gap: 16px;
+        padding: 20px 24px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(20px) saturate(180%);
+        border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     }
 
     .topic-title {
-        font-size: 2.25rem;
+        font-size: 1.5rem;
         font-weight: 800;
-        color: #f1f5f9;
+        color: #f8fafc;
         display: flex;
         align-items: center;
         letter-spacing: -0.02em;
@@ -24,48 +48,114 @@
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
+        filter: drop-shadow(0 2px 4px rgba(96, 165, 250, 0.3));
     }
 
     .back-btn {
-        background: rgba(51, 65, 85, 0.6);
+        background: rgba(17, 17, 17, 0.8);
         color: #e2e8f0;
-        border: 1.5px solid rgba(96, 165, 250, 0.3);
-        padding: 12px 24px;
-        border-radius: 12px;
+        border: 1.5px solid rgba(96, 165, 250, 0.4);
+        padding: 8px 16px;
+        border-radius: 8px;
         text-decoration: none;
         font-weight: 600;
         transition: all 0.3s ease;
-        backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px) saturate(150%);
         font-family: 'Inter', sans-serif;
         letter-spacing: -0.01em;
+        font-size: 0.875rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
 
     .back-btn:hover {
         background: rgba(96, 165, 250, 0.1);
-        border-color: rgba(96, 165, 250, 0.5);
-        transform: translateY(-2px);
-        box-shadow: 0 8px 16px rgba(96, 165, 250, 0.2);
+        border-color: rgba(96, 165, 250, 0.6);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(96, 165, 250, 0.2);
     }
 
-    .content-feed {
-        max-width: 720px;
-        margin: 0 auto;
+    .cards-container {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        padding-top: 80px;
+        backdrop-filter: blur(1px);
+    }
+
+    .content-card {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 20px;
+        transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.6s ease, filter 0.6s ease;
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+
+    .content-card.active {
+        transform: translateY(0);
+        opacity: 1;
+        z-index: 10;
+        filter: none;
+    }
+
+    .content-card.prev {
+        transform: translateY(-100vh);
+        opacity: 0;
+        z-index: 5;
+        filter: blur(8px) brightness(0.3);
+    }
+
+    .content-card.next {
+        transform: translateY(100vh);
+        opacity: 0;
+        z-index: 5;
+        filter: blur(8px) brightness(0.3);
     }
 
     .content-item {
-        background: rgba(15, 23, 42, 0.7);
-        border: 1px solid rgba(51, 65, 85, 0.4);
-        border-radius: 20px;
-        padding: 32px;
-        margin-bottom: 28px;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.03);
-        backdrop-filter: blur(16px);
-        transition: all 0.3s ease;
-        opacity: 0;
-        transform: translateY(30px);
-        animation: slideInUp 0.6s ease forwards;
+        background: rgba(0, 0, 0, 0.85);
+        border: 1px solid rgba(96, 165, 250, 0.2);
+        border-radius: 28px;
+        padding: 48px;
+        max-width: 650px;
+        width: 100%;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 
+            0 40px 80px rgba(0, 0, 0, 0.6),
+            0 0 0 1px rgba(255, 255, 255, 0.03),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(24px) saturate(180%);
         position: relative;
-        overflow: hidden;
+        animation: cardEnter 0.8s ease-out;
+        transform-style: preserve-3d;
+    }
+
+    .content-item:hover {
+        border-color: rgba(96, 165, 250, 0.4);
+        box-shadow: 
+            0 50px 100px rgba(0, 0, 0, 0.7),
+            0 0 0 1px rgba(96, 165, 250, 0.1),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 40px rgba(96, 165, 250, 0.1);
+        transform: translateZ(10px);
+    }
+
+    @keyframes cardEnter {
+        from {
+            transform: scale(0.85) translateY(30px) rotateX(10deg);
+            opacity: 0;
+        }
+        to {
+            transform: scale(1) translateY(0) rotateX(0deg);
+            opacity: 1;
+        }
     }
 
     .content-item::before {
@@ -74,167 +164,382 @@
         top: 0;
         left: 0;
         right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.3), transparent);
+        height: 3px;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899, #f59e0b);
+        border-radius: 28px 28px 0 0;
+        box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+    }
+
+    .content-item::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        background: linear-gradient(135deg, 
+            rgba(96, 165, 250, 0.1) 0%, 
+            rgba(139, 92, 246, 0.1) 25%, 
+            rgba(236, 72, 153, 0.1) 50%, 
+            rgba(245, 158, 11, 0.1) 75%, 
+            rgba(96, 165, 250, 0.1) 100%);
+        border-radius: 30px;
+        z-index: -1;
         opacity: 0;
         transition: opacity 0.3s ease;
     }
 
-    .content-item:hover::before {
+    .content-item:hover::after {
         opacity: 1;
-    }
-
-    .content-item:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 28px 56px rgba(0,0,0,0.25), 0 0 0 1px rgba(96, 165, 250, 0.1);
-        border-color: rgba(96, 165, 250, 0.3);
     }
 
     .content-type {
         display: inline-block;
         background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
         color: white;
-        padding: 8px 18px;
-        border-radius: 12px;
+        padding: 12px 24px;
+        border-radius: 14px;
         font-size: 0.8rem;
         font-weight: 700;
-        margin-bottom: 18px;
+        margin-bottom: 28px;
         text-transform: uppercase;
         letter-spacing: 0.75px;
         font-family: 'JetBrains Mono', monospace;
-        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        box-shadow: 
+            0 8px 16px rgba(59, 130, 246, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .content-type::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+        0% { left: -100%; }
+        100% { left: 100%; }
     }
 
     .content-text {
-        font-size: 1.125rem;
-        line-height: 1.8;
-        color: #e2e8f0;
-        margin-bottom: 24px;
+        font-size: 1.3rem;
+        line-height: 1.9;
+        color: #f1f5f9;
+        margin-bottom: 32px;
         font-weight: 400;
         letter-spacing: -0.01em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     }
 
     .content-meta {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding-top: 18px;
-        border-top: 1px solid rgba(71, 85, 105, 0.3);
+        padding-top: 24px;
+        border-top: 1px solid rgba(71, 85, 105, 0.2);
         font-size: 0.875rem;
         color: #94a3b8;
     }
 
-    .loading-spinner {
-        text-align: center;
-        padding: 48px;
-        color: #cbd5e1;
-    }
-
-    .loading-spinner .spinner {
-        display: inline-block;
-        width: 48px;
-        height: 48px;
-        border: 4px solid rgba(96, 165, 250, 0.2);
-        border-radius: 50%;
-        border-top-color: #60a5fa;
-        animation: spin 1s ease-in-out infinite;
-        margin-bottom: 18px;
-    }
-
-    .error-message {
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        color: #fca5a5;
-        padding: 24px;
-        border-radius: 16px;
-        margin: 24px 0;
-        text-align: center;
-        font-weight: 600;
-        backdrop-filter: blur(8px);
-    }
-
-    .refresh-btn {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        margin-top: 16px;
-    }
-
     .content-actions {
         display: flex;
-        gap: 12px;
-        margin-top: 16px;
+        gap: 14px;
+        margin-top: 18px;
     }
 
     .action-btn {
-        background: rgba(51, 65, 85, 0.4);
-        border: 1.5px solid rgba(71, 85, 105, 0.3);
+        background: rgba(17, 17, 17, 0.6);
+        border: 1.5px solid rgba(71, 85, 105, 0.4);
         color: #94a3b8;
-        padding: 10px 16px;
-        border-radius: 10px;
+        padding: 12px 18px;
+        border-radius: 12px;
         font-size: 0.8rem;
         cursor: pointer;
         transition: all 0.3s ease;
         font-family: 'Inter', sans-serif;
         font-weight: 500;
         letter-spacing: -0.01em;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .action-btn:hover {
-        background: rgba(96, 165, 250, 0.1);
-        border-color: rgba(96, 165, 250, 0.4);
-        color: #cbd5e1;
-        transform: scale(1.05);
+        background: rgba(96, 165, 250, 0.15);
+        border-color: rgba(96, 165, 250, 0.5);
+        color: #e2e8f0;
+        transform: scale(1.05) translateY(-1px);
+        box-shadow: 0 6px 16px rgba(96, 165, 250, 0.2);
     }
 
-    .type-fact { border-left: 3px solid #3b82f6; }
-    .type-story { border-left: 3px solid #8b5cf6; }
-    .type-question { border-left: 3px solid #10b981; }
-    .type-tip { border-left: 3px solid #f59e0b; }
-    .type-challenge { border-left: 3px solid #ef4444; }
+    /* Navigation indicators */
+    .scroll-indicators {
+        position: fixed;
+        right: 24px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 50;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        backdrop-filter: blur(20px);
+        background: rgba(0, 0, 0, 0.3);
+        padding: 16px 8px;
+        border-radius: 20px;
+        border: 1px solid rgba(96, 165, 250, 0.1);
+    }
 
+    .scroll-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgba(148, 163, 184, 0.3);
+        transition: all 0.4s ease;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .scroll-dot::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #60a5fa, #a78bfa);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+    }
+
+    .scroll-dot.active {
+        background: #60a5fa;
+        transform: scale(1.6);
+        box-shadow: 
+            0 0 20px rgba(96, 165, 250, 0.8),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    }
+
+    .scroll-dot.active::before {
+        opacity: 1;
+    }
+
+    .scroll-dot:hover:not(.active) {
+        background: rgba(96, 165, 250, 0.5);
+        transform: scale(1.2);
+    }
+
+    /* Scroll hints */
+    .scroll-hint {
+        position: fixed;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #64748b;
+        font-size: 0.875rem;
+        text-align: center;
+        z-index: 50;
+        animation: fadeInOut 4s ease-in-out infinite;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 12px 20px;
+        border-radius: 16px;
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(96, 165, 250, 0.1);
+    }
+
+    @keyframes fadeInOut {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.8; }
+    }
+
+    .scroll-hint .scroll-icon {
+        font-size: 1.3rem;
+        margin-bottom: 6px;
+        display: block;
+        filter: drop-shadow(0 2px 4px rgba(96, 165, 250, 0.3));
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        backdrop-filter: blur(12px);
+    }
+
+    .loading-spinner {
+        width: 70px;
+        height: 70px;
+        border: 5px solid rgba(96, 165, 250, 0.2);
+        border-radius: 50%;
+        border-top-color: #60a5fa;
+        border-right-color: #a78bfa;
+        animation: spin 1.2s ease-in-out infinite;
+        margin-bottom: 24px;
+        box-shadow: 0 0 30px rgba(96, 165, 250, 0.3);
+    }
+
+    .loading-text {
+        color: #e2e8f0;
+        font-size: 1.2rem;
+        font-weight: 500;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Content type colors with enhanced contrast */
+    .type-fact { 
+        border-left: 5px solid #3b82f6; 
+        box-shadow: -5px 0 20px rgba(59, 130, 246, 0.2);
+    }
+    .type-story { 
+        border-left: 5px solid #8b5cf6; 
+        box-shadow: -5px 0 20px rgba(139, 92, 246, 0.2);
+    }
+    .type-question { 
+        border-left: 5px solid #10b981; 
+        box-shadow: -5px 0 20px rgba(16, 185, 129, 0.2);
+    }
+    .type-tip { 
+        border-left: 5px solid #f59e0b; 
+        box-shadow: -5px 0 20px rgba(245, 158, 11, 0.2);
+    }
+    .type-challenge { 
+        border-left: 5px solid #ef4444; 
+        box-shadow: -5px 0 20px rgba(239, 68, 68, 0.2);
+    }
+
+    /* Error message */
+    .error-message {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+        padding: 28px;
+        border-radius: 20px;
+        margin: 24px;
+        text-align: center;
+        font-weight: 600;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 20px 40px rgba(239, 68, 68, 0.1);
+    }
+
+    /* Mobile optimizations */
     @media (max-width: 768px) {
         .feed-header {
-            flex-direction: column;
-            text-align: center;
+            padding: 16px 20px;
         }
         
         .topic-title {
-            font-size: 1.875rem;
+            font-size: 1.25rem;
         }
         
         .content-item {
-            padding: 24px;
-            margin-bottom: 20px;
+            padding: 32px;
+            margin: 20px;
+            max-height: 90vh;
         }
         
         .content-text {
-            font-size: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .scroll-indicators {
+            right: 16px;
+            padding: 12px 6px;
+        }
+        
+        .scroll-hint {
+            bottom: 20px;
+            font-size: 0.8rem;
+            padding: 10px 16px;
         }
     }
 
-    @keyframes slideInUp {
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* Touch feedback */
+    .content-card.touching .content-item {
+        transform: scale(0.96) translateZ(5px);
+    }
+
+    /* Background blur effect */
+    .cards-container::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: 
+            radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.02) 0%, transparent 70%),
+            radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.02) 0%, transparent 70%);
+        backdrop-filter: blur(2px);
+        z-index: -1;
+    }
+
+    /* Enhanced scroll behavior */
+    .content-item {
+        scroll-behavior: smooth;
+    }
+
+    .content-item::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .content-item::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+
+    .content-item::-webkit-scrollbar-thumb {
+        background: rgba(96, 165, 250, 0.3);
+        border-radius: 3px;
+    }
+
+    .content-item::-webkit-scrollbar-thumb:hover {
+        background: rgba(96, 165, 250, 0.5);
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card feed-header">
-    <h1 class="topic-title">
-        📚 {{ topic }}
-    </h1>
-    <a href="/" class="back-btn">← Back to Topics</a>
-</div>
+<div class="feed-container">
+    <div class="feed-header">
+        <h1 class="topic-title">
+            📚 {{ topic }}
+        </h1>
+        <a href="/" class="back-btn">← Back</a>
+    </div>
 
-<div class="content-feed" id="contentFeed">
-    <!-- Content will be loaded here -->
-</div>
+    <div class="cards-container" id="cardsContainer">
+        <!-- Cards will be dynamically added here -->
+    </div>
 
-<div class="loading-spinner" id="loadingSpinner">
-    <div class="spinner"></div>
-    <p>Generating engaging content...</p>
+    <div class="scroll-indicators" id="scrollIndicators">
+        <!-- Dots will be dynamically added here -->
+    </div>
+
+    <div class="scroll-hint" id="scrollHint">
+        <span class="scroll-icon">⬆️⬇️</span>
+        Swipe or scroll to navigate
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Generating content...</div>
+    </div>
 </div>
 {% endblock %}
 
@@ -242,17 +547,19 @@
 <script>
     const topic = '{{ topic }}';
     const contentTypes = ['fact', 'story', 'question', 'tip', 'challenge'];
+    let cards = [];
+    let currentIndex = 0;
     let isLoading = false;
-    let contentCount = 0;
+    let isTransitioning = false;
+    let touchStartY = 0;
+    let touchEndY = 0;
 
+    // Generate initial content
     async function generateContent(type = null) {
-        if (isLoading) return;
+        if (isLoading) return null;
         
         isLoading = true;
-        const spinner = document.getElementById('loadingSpinner');
-        spinner.style.display = 'block';
-
-        // If no type specified, pick one randomly
+        
         if (!type) {
             type = contentTypes[Math.floor(Math.random() * contentTypes.length)];
         }
@@ -279,23 +586,18 @@
                 throw new Error(data.error);
             }
 
-            addContentToFeed(data);
-            contentCount++;
+            return data;
             
         } catch (error) {
             console.error('Error generating content:', error);
             showError(error.message);
+            return null;
         } finally {
             isLoading = false;
-            spinner.style.display = 'none';
         }
     }
 
-    function addContentToFeed(content) {
-        const feed = document.getElementById('contentFeed');
-        const contentDiv = document.createElement('div');
-        contentDiv.className = `content-item type-${content.type}`;
-        
+    function createCard(content, index) {
         const typeEmoji = {
             'fact': '💡',
             'story': '📖',
@@ -304,34 +606,123 @@
             'challenge': '🧩'
         };
 
-        contentDiv.innerHTML = `
-            <div class="content-type">
-                ${typeEmoji[content.type]} ${content.type.toUpperCase()}
-            </div>
-            <div class="content-text">${content.content}</div>
-            <div class="content-meta">
-                <span>Generated ${formatTime(content.timestamp)}</span>
-                <div class="content-actions">
-                    <button class="action-btn" onclick="shareContent(this)">📤 Share</button>
-                    <button class="action-btn" onclick="likeContent(this)">👍 Like</button>
+        const card = document.createElement('div');
+        card.className = `content-card type-${content.type}`;
+        card.dataset.index = index;
+        
+        card.innerHTML = `
+            <div class="content-item">
+                <div class="content-type">
+                    ${typeEmoji[content.type]} ${content.type.toUpperCase()}
+                </div>
+                <div class="content-text">${content.content}</div>
+                <div class="content-meta">
+                    <span>Generated ${formatTime(content.timestamp)}</span>
+                    <div class="content-actions">
+                        <button class="action-btn" onclick="shareContent(this)">📤 Share</button>
+                        <button class="action-btn" onclick="likeContent(this)">👍 Like</button>
+                    </div>
                 </div>
             </div>
         `;
 
-        feed.appendChild(contentDiv);
+        return card;
+    }
+
+    function addCard(content) {
+        const card = createCard(content, cards.length);
+        cards.push({ element: card, content: content });
         
-        // Auto-scroll removed - users will stay at their current scroll position
+        document.getElementById('cardsContainer').appendChild(card);
+        updateIndicators();
+        
+        return card;
+    }
+
+    function updateCardPositions() {
+        cards.forEach((card, index) => {
+            const element = card.element;
+            element.classList.remove('active', 'prev', 'next');
+            
+            if (index === currentIndex) {
+                element.classList.add('active');
+            } else if (index < currentIndex) {
+                element.classList.add('prev');
+            } else {
+                element.classList.add('next');
+            }
+        });
+    }
+
+    function updateIndicators() {
+        const container = document.getElementById('scrollIndicators');
+        container.innerHTML = '';
+        
+        cards.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.className = 'scroll-dot';
+            if (index === currentIndex) {
+                dot.classList.add('active');
+            }
+            dot.addEventListener('click', () => goToCard(index));
+            container.appendChild(dot);
+        });
+    }
+
+    function goToCard(index) {
+        if (isTransitioning || index < 0 || index >= cards.length) return;
+        
+        isTransitioning = true;
+        currentIndex = index;
+        updateCardPositions();
+        updateIndicators();
+        
+        setTimeout(() => {
+            isTransitioning = false;
+        }, 600);
+
+        // Hide scroll hint after first interaction
+        const hint = document.getElementById('scrollHint');
+        if (hint) {
+            hint.style.opacity = '0';
+            setTimeout(() => hint.remove(), 500);
+        }
+    }
+
+    function nextCard() {
+        if (currentIndex < cards.length - 1) {
+            goToCard(currentIndex + 1);
+        } else {
+            // Generate new content
+            loadNewContent();
+        }
+    }
+
+    function prevCard() {
+        if (currentIndex > 0) {
+            goToCard(currentIndex - 1);
+        }
+    }
+
+    async function loadNewContent() {
+        if (isLoading) return;
+        
+        const content = await generateContent();
+        if (content) {
+            addCard(content);
+            goToCard(cards.length - 1);
+        }
     }
 
     function showError(message) {
-        const feed = document.getElementById('contentFeed');
+        const container = document.getElementById('cardsContainer');
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error-message';
         errorDiv.innerHTML = `
             <p>⚠️ ${message}</p>
-            <button class="btn refresh-btn" onclick="generateContent()">Try Again</button>
+            <button class="btn" onclick="loadNewContent()" style="margin-top: 16px;">Try Again</button>
         `;
-        feed.appendChild(errorDiv);
+        container.appendChild(errorDiv);
     }
 
     function formatTime(timestamp) {
@@ -371,51 +762,92 @@
         button.disabled = true;
     }
 
-    // Infinite scroll functionality
-    function handleScroll() {
-        const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+    // Event listeners
+    document.addEventListener('wheel', (e) => {
+        if (isTransitioning) return;
         
-        if (scrollTop + clientHeight >= scrollHeight - 1000 && !isLoading) {
-            generateContent();
+        e.preventDefault();
+        
+        if (e.deltaY > 0) {
+            nextCard();
+        } else {
+            prevCard();
         }
-    }
+    }, { passive: false });
 
-    // Initialize the feed
-    document.addEventListener('DOMContentLoaded', function() {
-        // Generate initial content
-        generateContent();
+    // Touch events
+    document.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+        document.querySelector('.content-card.active')?.classList.add('touching');
+    });
+
+    document.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', (e) => {
+        touchEndY = e.changedTouches[0].clientY;
+        document.querySelector('.content-card.active')?.classList.remove('touching');
         
-        // Add scroll listener for infinite scroll
-        window.addEventListener('scroll', handleScroll);
+        const deltaY = touchStartY - touchEndY;
+        const minSwipeDistance = 50;
         
-        // Generate content every 10 seconds if user is active
-        setInterval(() => {
-            if (!isLoading && document.visibilityState === 'visible') {
-                // Only auto-generate if less than 10 items
-                if (contentCount < 10) {
-                    generateContent();
-                }
+        if (Math.abs(deltaY) > minSwipeDistance) {
+            if (deltaY > 0) {
+                nextCard(); // Swiped up
+            } else {
+                prevCard(); // Swiped down
             }
-        }, 10000);
-    });
-
-    // Handle visibility change to pause/resume auto-generation
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible') {
-            // User came back, generate fresh content
-            setTimeout(generateContent, 1000);
         }
     });
 
-    // Add keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if (e.key === ' ' && !isLoading) {
-            e.preventDefault();
-            generateContent();
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+        if (isTransitioning) return;
+        
+        switch(e.key) {
+            case 'ArrowUp':
+            case 'PageUp':
+                e.preventDefault();
+                prevCard();
+                break;
+            case 'ArrowDown':
+            case 'PageDown':
+            case ' ':
+                e.preventDefault();
+                nextCard();
+                break;
+            case 'Escape':
+                window.location.href = '/';
+                break;
         }
-        if (e.key === 'Escape') {
-            window.location.href = '/';
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Generate initial 3 cards
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        
+        for (let i = 0; i < 3; i++) {
+            const content = await generateContent();
+            if (content) {
+                addCard(content);
+            }
         }
+        
+        if (cards.length > 0) {
+            goToCard(0);
+            loadingOverlay.style.display = 'none';
+        }
+
+        // Hide scroll hint after 5 seconds
+        setTimeout(() => {
+            const hint = document.getElementById('scrollHint');
+            if (hint) {
+                hint.style.opacity = '0';
+                setTimeout(() => hint.remove(), 500);
+            }
+        }, 5000);
     });
 </script>
 {% endblock %} 
