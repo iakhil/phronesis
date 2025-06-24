@@ -1,20 +1,33 @@
-/* Additional custom styles for Phronesis */
+/* Additional custom styles for Phronesis - Dark Theme Edition */
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
+/* Light mode support (reversed from original) */
+@media (prefers-color-scheme: light) {
+    body {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #cbd5e1 75%, #94a3b8 100%);
+        color: #1e293b;
+    }
+    
     .card {
-        background: rgba(45, 55, 72, 0.95);
-        color: #f7fafc;
+        background: rgba(255, 255, 255, 0.95);
+        color: #1e293b;
+        border-color: rgba(148, 163, 184, 0.3);
     }
     
     .topic-btn {
-        background: rgba(45, 55, 72, 0.8);
-        color: #e2e8f0;
-        border-color: rgba(102, 126, 234, 0.3);
+        background: rgba(248, 250, 252, 0.8);
+        color: #475569;
+        border-color: rgba(59, 130, 246, 0.3);
     }
     
     .content-text {
-        color: #e2e8f0;
+        color: #374151;
+    }
+    
+    .header h1 {
+        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
 }
 
@@ -27,7 +40,18 @@
     .content-item {
         page-break-inside: avoid;
         box-shadow: none;
-        border: 1px solid #ccc;
+        border: 1px solid #64748b;
+        background: white !important;
+        color: black !important;
+    }
+    
+    .content-text {
+        color: black !important;
+    }
+    
+    .content-type {
+        background: #64748b !important;
+        color: white !important;
     }
 }
 
@@ -38,7 +62,11 @@
     }
     
     .content-item {
-        border: 2px solid #333;
+        border: 2px solid #60a5fa;
+    }
+    
+    .card {
+        border: 2px solid #64748b;
     }
 }
 
@@ -49,31 +77,118 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }
+    
+    .btn::before {
+        display: none;
+    }
+    
+    .topic-btn::before {
+        display: none;
+    }
 }
 
 /* Focus styles for accessibility */
 .topic-btn:focus,
 .btn:focus,
-.action-btn:focus {
-    outline: 3px solid #667eea;
+.action-btn:focus,
+.back-btn:focus {
+    outline: 3px solid #60a5fa;
     outline-offset: 2px;
 }
 
-/* Custom scrollbar */
+/* Enhanced custom scrollbar */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(102, 126, 234, 0.5);
-    border-radius: 4px;
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.6), rgba(139, 92, 246, 0.6));
+    border-radius: 6px;
+    border: 2px solid rgba(15, 23, 42, 0.4);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(102, 126, 234, 0.7);
+    background: linear-gradient(180deg, rgba(96, 165, 250, 0.8), rgba(139, 92, 246, 0.8));
+}
+
+/* Firefox scrollbar */
+html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(96, 165, 250, 0.6) rgba(15, 23, 42, 0.4);
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Text selection enhancement */
+::selection {
+    background: rgba(96, 165, 250, 0.4);
+    color: #f1f5f9;
+    text-shadow: none;
+}
+
+/* Loading animation enhancement */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+.loading {
+    animation: spin 1s linear infinite, pulse 2s ease-in-out infinite;
+}
+
+/* Gradient text utility */
+.gradient-text {
+    background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #f472b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Glass morphism utility */
+.glass {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile-specific enhancements */
+@media (max-width: 768px) {
+    /* Improve touch targets */
+    .topic-btn,
+    .action-btn,
+    .btn {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+    
+    /* Better mobile typography */
+    .content-text {
+        font-size: 1.0625rem;
+        line-height: 1.7;
+    }
+}
+
+/* Prefers dark color scheme enhancement */
+@media (prefers-color-scheme: dark) {
+    /* Enhanced shadows for true dark mode */
+    .card {
+        box-shadow: 0 25px 50px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
+    }
+    
+    .content-item {
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.03);
+    }
 } 
