@@ -1,14 +1,16 @@
 import os
 import json
 import time
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask_cors import CORS
 import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='frontend/dist', static_url_path='/')
+cors = CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://127.0.0.1:5173"]}})
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 # Configure Gemini API
@@ -50,13 +52,11 @@ TOPIC_CATEGORIES = {
 
 @app.route('/')
 def index():
-    """Main page with topic selection"""
-    return render_template('index.html', categories=TOPIC_CATEGORIES)
-
-@app.route('/feed/<topic>')
-def feed(topic):
-    """Feed page for a specific topic"""
-    return render_template('feed.html', topic=topic)
+    """Serve React app index during production build."""
+    try:
+        return send_from_directory(app.static_folder, 'index.html')
+    except Exception:
+        return jsonify({"error": "Frontend build not found. Run npm run build in frontend/."}), 500
 
 @app.route('/api/generate-content', methods=['POST'])
 def generate_content():
@@ -116,6 +116,21 @@ def generate_content():
 def get_topics():
     """Get all available topics"""
     return jsonify(TOPIC_CATEGORIES)
+
+# SPA fallback and static assets
+@app.route('/assets/<path:path>')
+def assets(path):
+    return send_from_directory(app.static_folder + '/assets', path)
+
+@app.errorhandler(404)
+def spa_fallback(_):
+    # If path doesn't start with /api, serve React index.html
+    if not request.path.startswith('/api'):
+        try:
+            return send_from_directory(app.static_folder, 'index.html')
+        except Exception:
+            return jsonify({"error": "Frontend build not found. Run npm run build in frontend/."}), 404
+    return jsonify({'error': 'Not found'}), 404
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000) 
