@@ -7,13 +7,19 @@ import json
 import time
 from pathlib import Path
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 import google.generativeai as genai
 from dotenv import load_dotenv
+
+# Import database and models
+from database import get_db, init_db
+import crud
+from models import Curriculum
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +30,15 @@ app = FastAPI(
     description="AI-powered educational learning platform",
     version="1.0.0"
 )
+
+# Initialize database on startup (will be called automatically)
+def startup_event():
+    """Initialize database tables on application startup"""
+    init_db()
+    print("✓ Database initialized successfully")
+
+# Call startup on module load (alternative to deprecated on_event)
+startup_event()
 
 # Configure CORS
 app.add_middleware(
@@ -120,6 +135,9 @@ class AnswerSubmission(BaseModel):
     correct_answer: str
     user_answer: str
 
+class CurriculumUpdate(BaseModel):
+    curriculum_data: list
+
 # API Routes
 @app.get("/api/topics")
 async def get_topics():
@@ -191,16 +209,27 @@ async def generate_content(request: ContentRequest):
         raise HTTPException(status_code=500, detail=f"Failed to generate content: {str(e)}")
 
 @app.post("/api/generate-curriculum")
-async def generate_curriculum(request: CurriculumRequest):
-    """Generate curriculum for a CS subtopic"""
+async def generate_curriculum(request: CurriculumRequest, db: Session = Depends(get_db)):
+    """Generate curriculum for a CS subtopic and store in database"""
+    if not request.subtopic:
+        raise HTTPException(status_code=400, detail="Subtopic is required")
+    
+    # Check if curriculum already exists in database
+    existing_curriculum = crud.get_curriculum(db, request.subtopic)
+    if existing_curriculum:
+        print(f"✓ Retrieved curriculum from database: {request.subtopic}")
+        return {
+            "subtopic": request.subtopic,
+            "curriculum": existing_curriculum.curriculum_data,
+            "cached": True
+        }
+    
+    # Generate new curriculum if not in database
     if not model:
         raise HTTPException(
             status_code=500,
             detail="Content generation is not available. Please configure GEMINI_API_KEY."
         )
-    
-    if not request.subtopic:
-        raise HTTPException(status_code=400, detail="Subtopic is required")
     
     try:
         prompt = f"""You are a Computer Science curriculum designer. Generate a comprehensive curriculum for "{request.subtopic}".
@@ -228,9 +257,14 @@ Return ONLY the JSON array, no other text."""
         # Parse JSON
         curriculum = json.loads(content)
         
+        # Store in database
+        crud.create_curriculum(db, request.subtopic, curriculum)
+        print(f"✓ Stored curriculum in database: {request.subtopic}")
+        
         return {
             "subtopic": request.subtopic,
-            "curriculum": curriculum
+            "curriculum": curriculum,
+            "cached": False
         }
         
     except Exception as e:
@@ -242,9 +276,17 @@ Return ONLY the JSON array, no other text."""
             {"title": "Intermediate Topics", "level": "intermediate", "description": f"Building on the basics"},
             {"title": "Advanced Concepts", "level": "advanced", "description": f"Deep dive into {request.subtopic}"},
         ]
+        
+        # Store fallback in database
+        try:
+            crud.create_curriculum(db, request.subtopic, fallback)
+        except:
+            pass  # Ignore database errors for fallback
+        
         return {
             "subtopic": request.subtopic,
-            "curriculum": fallback
+            "curriculum": fallback,
+            "cached": False
         }
 
 @app.post("/api/generate-summary")
@@ -274,6 +316,115 @@ async def generate_summary(request: SummaryRequest):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")
+
+# ============================================================================
+# Curriculum CRUD API Endpoints
+# ============================================================================
+
+@app.get("/api/curriculums")
+async def get_all_curriculums(db: Session = Depends(get_db)):
+    """Get all stored curriculums from database"""
+    curriculums = crud.get_all_curriculums(db)
+    return {
+        "count": len(curriculums),
+        "curriculums": [
+            {
+                "subtopic": c.subtopic,
+                "curriculum": c.curriculum_data,
+                "created_at": c.created_at.isoformat() if c.created_at else None,
+                "updated_at": c.updated_at.isoformat() if c.updated_at else None
+            }
+            for c in curriculums
+        ]
+    }
+
+@app.get("/api/curriculum/{subtopic}")
+async def get_curriculum_by_subtopic(subtopic: str, db: Session = Depends(get_db)):
+    """Get curriculum for a specific subtopic from database"""
+    curriculum = crud.get_curriculum(db, subtopic)
+    if not curriculum:
+        raise HTTPException(status_code=404, detail=f"Curriculum not found for: {subtopic}")
+    
+    return {
+        "subtopic": curriculum.subtopic,
+        "curriculum": curriculum.curriculum_data,
+        "created_at": curriculum.created_at.isoformat() if curriculum.created_at else None,
+        "updated_at": curriculum.updated_at.isoformat() if curriculum.updated_at else None
+    }
+
+@app.delete("/api/curriculum/{subtopic}")
+async def delete_curriculum_by_subtopic(subtopic: str, db: Session = Depends(get_db)):
+    """Delete a curriculum from database"""
+    success = crud.delete_curriculum(db, subtopic)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Curriculum not found for: {subtopic}")
+    
+    return {"message": f"Curriculum deleted successfully for: {subtopic}"}
+
+@app.put("/api/curriculum/{subtopic}")
+async def update_curriculum_by_subtopic(
+    subtopic: str,
+    update: CurriculumUpdate,
+    db: Session = Depends(get_db)
+):
+    """Update or create curriculum for a subtopic"""
+    curriculum = crud.update_curriculum(db, subtopic, update.curriculum_data)
+    return {
+        "subtopic": curriculum.subtopic,
+        "curriculum": curriculum.curriculum_data,
+        "message": "Curriculum updated successfully"
+    }
+
+@app.get("/api/curriculum-explanation/{subtopic}")
+async def get_curriculum_explanation(subtopic: str, db: Session = Depends(get_db)):
+    """
+    Get a comprehensive explanation of the curriculum for Learn mode.
+    This generates the initial AI introduction that the voice agent will read.
+    """
+    # Get curriculum from database
+    curriculum = crud.get_curriculum(db, subtopic)
+    if not curriculum:
+        raise HTTPException(status_code=404, detail=f"Curriculum not found for: {subtopic}")
+    
+    if not model:
+        raise HTTPException(
+            status_code=500,
+            detail="Content generation is not available. Please configure GEMINI_API_KEY."
+        )
+    
+    try:
+        # Generate a conversational explanation of the curriculum
+        curriculum_list = "\n".join([
+            f"{i+1}. {item['title']} ({item['level']}): {item['description']}"
+            for i, item in enumerate(curriculum.curriculum_data)
+        ])
+        
+        prompt = f"""You are a specialized AI tutor for {subtopic} ONLY. The student wants to learn about {subtopic}.
+
+Here is the curriculum they'll be learning:
+{curriculum_list}
+
+Create a warm, engaging introduction (2-3 short paragraphs) that:
+1. Welcomes them to learning specifically about {subtopic}
+2. Briefly explains why {subtopic} is important and exciting in Computer Science
+3. Gives a high-level overview of the key concepts they'll learn (without listing them all)
+4. Clearly state that you are specialized in {subtopic} and ready to answer ANY questions about this topic
+5. Mention that you'll keep discussions focused on {subtopic} to ensure deep learning
+
+Keep it conversational and encouraging, as if you're speaking to them. Maximum 150 words.
+Important: Emphasize that you are a specialized tutor for {subtopic} specifically."""
+        
+        response = model.generate_content(prompt)
+        explanation = response.text.strip()
+        
+        return {
+            "subtopic": subtopic,
+            "explanation": explanation,
+            "curriculum": curriculum.curriculum_data
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {str(e)}")
 
 # Serve React frontend
 frontend_path = Path(__file__).parent / "frontend" / "dist"

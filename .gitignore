@@ -213,4 +213,26 @@ pids
 *.pid.lock
 
 # Application specific
-# Add any application-specific files here 
+# Add any application-specific files here
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+phronesis.db
+
+# Frontend build output and dependencies
+frontend/dist/
+frontend/node_modules/
+frontend/.vite/
+
+# Frontend backup files
+frontend/src/**/*.bak
+frontend/src/**/*.bak[0-9]
+
+# Environment variables and secrets
+.env.local
+.env.*.local
+
+# Color scheme documentation (if needed, uncomment)
+# COLOR_SCHEME.md 
