@@ -6,8 +6,7 @@ Phronesis is a learning platform for students or anyone who is keen to learn abo
 ## Demo Video
 
 
-
-https://github.com/user-attachments/assets/pr_3.mp4
+https://www.youtube.com/watch?v=cUPlw1arcXA
 
 ## How I used Gemini and Pipecat
 -Used Gemini for generating educational content. 
