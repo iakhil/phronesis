@@ -4,7 +4,10 @@
 Phronesis is a learning platform for students or anyone who is keen to learn about a new subject. LLMs have a lot of information, but it is difficult to retrieve this information in a way that enhances our learning. That's why I built Phronesis. Users can study popular CS topics like Data Structures and Operating Systsems by talking to an AI voice agent in real time. Once they have learnt and clarified their doubts, they can switch to Quiz mode and have the voice agent conduct a quiz to test the user's understanding. After the quiz, the user gets a report on their knowledge gaps so that they can fill that. Infinitely scrollable feeds are very popular. Phronesis has a Scroll tab where users can scroll infinitely from a variety of subjects and then converse with the influencer to discuss the topic in more depth.
 
 ## Demo Video
-Watch the demo: [pr_3.mp4](frontend/src/pr_3.mp4)
+
+
+
+https://github.com/user-attachments/assets/pr_3.mp4
 
 ## How I used Gemini and Pipecat
 -Used Gemini for generating educational content. 
