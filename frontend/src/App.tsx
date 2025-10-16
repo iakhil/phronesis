@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom'
 import './App.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import VoiceChat from './VoiceChat'
+import VoiceChatWrapper from './VoiceChatWrapper'
+import CodingChallenge from './CodingChallenge'
+import TavusChat from './TavusChat'
 
 // Main layout with tabs
 function Layout({ children }: { children: React.ReactNode }) {
@@ -12,9 +14,14 @@ function Layout({ children }: { children: React.ReactNode }) {
   const isScroll = location.pathname.startsWith('/scroll')
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0f0d 0%, #0d1411 25%, #0f1813 75%, #0a0f0d 100%)' }}>
-      {/* Tab Navigation */}
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, background: 'rgba(10,15,13,0.95)', backdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(16,185,129,.3)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #0a0f0d 0%, #0d1411 25%, #0f1813 75%, #0a0f0d 100%)', paddingBottom: 70 }}>
+      {/* Content */}
+      <div>
+        {children}
+      </div>
+      
+      {/* Tab Navigation - Bottom */}
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000, background: 'rgba(10,15,13,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(16,185,129,.3)', boxShadow: '0 -2px 8px rgba(0,0,0,0.05)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', gap: 0 }}>
           <button
             onClick={() => navigate('/')}
@@ -23,7 +30,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               padding: '16px 24px',
               background: isHome ? 'linear-gradient(135deg,#10b981,#059669)' : 'transparent',
               border: 'none',
-              borderBottom: isHome ? '3px solid #10b981' : '3px solid transparent',
+              borderTop: isHome ? '3px solid #10b981' : '3px solid transparent',
               color: isHome ? '#fff' : '#94a3b8',
               fontWeight: isHome ? 700 : 500,
               fontSize: '1rem',
@@ -40,7 +47,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               padding: '16px 24px',
               background: isScroll ? 'linear-gradient(135deg,#10b981,#059669)' : 'transparent',
               border: 'none',
-              borderBottom: isScroll ? '3px solid #10b981' : '3px solid transparent',
+              borderTop: isScroll ? '3px solid #10b981' : '3px solid transparent',
               color: isScroll ? '#fff' : '#94a3b8',
               fontWeight: isScroll ? 700 : 500,
               fontSize: '1rem',
@@ -49,20 +56,18 @@ function Layout({ children }: { children: React.ReactNode }) {
             }}
           >
             📱 Scroll
-          </button>
+        </button>
         </div>
       </nav>
-      <div style={{ paddingTop: 60 }}>
-        {children}
-      </div>
     </div>
   )
 }
 
 // Types
 type Concept = {
-  title: string
-  level: 'beginner' | 'intermediate' | 'advanced'
+  title?: string
+  name?: string  // For Data Structures challenges
+  level?: 'beginner' | 'intermediate' | 'advanced'
   description: string
 }
 
@@ -96,6 +101,18 @@ function Home() {
 
   async function loadCurriculum(subtopic: string) {
     if (loadingCurriculum) return
+    
+    // Special handling for Data Structures - show coding challenges instead of curriculum
+    if (subtopic === 'Data Structures') {
+      setSelectedSubtopic(subtopic)
+      // Set hardcoded challenges as "curriculum"
+      setCurriculum([
+        { name: '🔍 Linear Search', description: 'Learn to search through arrays sequentially' },
+        { name: '🎯 Binary Search', description: 'Master the divide-and-conquer search algorithm' },
+        { name: '🌐 Breadth-First Search', description: 'Explore graph traversal with BFS' }
+      ])
+      return
+    }
     
     setSelectedSubtopic(subtopic)
     setLoadingCurriculum(true)
@@ -133,8 +150,8 @@ function Home() {
   }
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '20px' }}>
-      <header style={{ textAlign: 'center', marginBottom: 40 }}>
+    <div style={{ maxWidth: 1600, margin: '0 auto', padding: '40px 20px' }}>
+      <header style={{ textAlign: 'center', marginBottom: 60 }}>
         <h1 style={{ fontSize: '3.5rem', fontWeight: 800, background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 12 }}>
           🧠 Phronesis
         </h1>
@@ -146,13 +163,13 @@ function Home() {
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selectedSubtopic ? '1fr 1.5fr' : '1fr', gap: 32 }}>
-        {/* Subtopics Grid */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
+        {/* Subtopics Grid - Horizontal Cards */}
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 20 }}>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 28, textAlign: 'center' }}>
             Computer Science Topics
           </h2>
-          <div style={{ display: 'grid', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 24 }}>
             {Object.entries(subtopics).map(([name, info]) => (
               <div
                 key={name}
@@ -160,45 +177,61 @@ function Home() {
                 onMouseEnter={(e) => {
                   if (selectedSubtopic !== name) {
                     e.currentTarget.style.background = 'rgba(16,185,129,0.1)'
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.boxShadow = '0 8px 20px rgba(16,185,129,0.2)'
+                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.boxShadow = '0 12px 28px rgba(16,185,129,0.25)'
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (selectedSubtopic !== name) {
                     e.currentTarget.style.background = 'rgba(17,24,22,0.7)'
                     e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)'
                   }
                 }}
                 style={{
                   background: selectedSubtopic === name ? 'rgba(16,185,129,0.15)' : 'rgba(17,24,22,0.7)',
                   border: selectedSubtopic === name ? '2px solid rgba(16,185,129,0.8)' : '1px solid rgba(16,185,129,0.2)',
-                  borderRadius: 16,
-                  padding: 20,
+                  borderRadius: 20,
+                  padding: 28,
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   backdropFilter: 'blur(12px)',
                   position: 'relative',
+                  boxShadow: selectedSubtopic === name ? '0 12px 28px rgba(16,185,129,0.3)' : '0 4px 12px rgba(0,0,0,0.3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: 180,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <span style={{ fontSize: '2rem' }}>{info.icon}</span>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 12 }}>
+                  <div style={{ 
+                    fontSize: '3rem', 
+                    background: 'rgba(16,185,129,0.1)', 
+                    padding: '12px', 
+                    borderRadius: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: 68,
+                    height: 68
+                  }}>
+                    {info.icon}
+                  </div>
                   <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{name}</h3>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 8, lineHeight: 1.3 }}>{name}</h3>
                     {selectedSubtopic !== name && (
-                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         Click to view curriculum →
                       </span>
                     )}
                     {selectedSubtopic === name && (
-                      <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                         ✓ Selected
                       </span>
                     )}
                   </div>
                 </div>
-                <p style={{ fontSize: '0.9rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.95rem', color: '#94a3b8', lineHeight: 1.6, marginTop: 'auto' }}>
                   {info.description}
                 </p>
               </div>
@@ -208,29 +241,46 @@ function Home() {
 
         {/* Curriculum and Mode Selection */}
         {selectedSubtopic && (
-          <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 20 }}>
+          <div style={{ background: 'rgba(17,24,22,0.5)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 24, padding: 40, backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 28, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+              <span style={{ fontSize: '2rem' }}>{subtopics[selectedSubtopic]?.icon}</span>
               {selectedSubtopic} Curriculum
             </h2>
             
             {loadingCurriculum ? (
-              <div style={{ display: 'grid', placeItems: 'center', minHeight: 200, color: '#94a3b8' }}>
+              <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, color: '#94a3b8' }}>
                 <div style={{ textAlign: 'center' }}>
                   <div className="dot-pulse" style={{ marginBottom: 12 }}></div>
-                  <p>Generating curriculum...</p>
+                  <p style={{ fontSize: '1rem' }}>Generating curriculum...</p>
                 </div>
               </div>
             ) : (
               <>
                 {/* Curriculum List */}
-                <div style={{ background: 'rgba(17,24,22,0.8)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 16, padding: 24, marginBottom: 24, backdropFilter: 'blur(12px)', maxHeight: 400, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
-                  <p style={{ fontSize: '0.85rem', color: '#10b981', marginBottom: 16, fontWeight: 600 }}>
-                    💡 Click on a topic below to focus your learning session
+                <div style={{ background: 'rgba(10,15,13,0.6)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 20, padding: 32, marginBottom: 32, backdropFilter: 'blur(12px)', maxHeight: 450, overflowY: 'auto', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.3)' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#10b981', marginBottom: 24, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '1.5rem' }}>💡</span>
+                    Click on a topic below to focus your learning session
                   </p>
                   {curriculum.map((concept, i) => (
                     <div 
                       key={i} 
-                      onClick={() => setSelectedConcept(concept.title)}
+                      onClick={() => {
+                        // For Data Structures, navigate directly to coding challenge
+                        if (selectedSubtopic === 'Data Structures' && concept.name) {
+                          const challengeMap: Record<string, string> = {
+                            '🔍 Linear Search': 'linear-search',
+                            '🎯 Binary Search': 'binary-search',
+                            '🌐 Breadth-First Search': 'breadth-first-search'
+                          }
+                          const challengeId = challengeMap[concept.name]
+                          if (challengeId) {
+                            navigate(`/challenge/${challengeId}`)
+                          }
+                        } else if (concept.title) {
+                          setSelectedConcept(concept.title)
+                        }
+                      }}
                       onMouseEnter={(e) => {
                         if (selectedConcept !== concept.title) {
                           e.currentTarget.style.background = 'rgba(16,185,129,0.05)'
@@ -258,25 +308,32 @@ function Home() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 6 }}>
                         <div style={{ flex: 1 }}>
                           <h4 style={{ fontSize: '1.05rem', fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>
-                            {selectedConcept === concept.title && '✓ '}{i + 1}. {concept.title}
+                            {selectedSubtopic === 'Data Structures' ? concept.name : `${selectedConcept === concept.title ? '✓ ' : ''}${i + 1}. ${concept.title}`}
                           </h4>
-                          {selectedConcept === concept.title && (
+                          {selectedConcept === concept.title && selectedSubtopic !== 'Data Structures' && (
                             <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
                               Selected for learning
                             </span>
                           )}
+                          {selectedSubtopic === 'Data Structures' && (
+                            <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                              Click to start coding →
+                            </span>
+                          )}
                         </div>
-                        <span style={{ 
-                          fontSize: '0.75rem', 
-                          padding: '4px 8px', 
-                          borderRadius: 6, 
-                          background: concept.level === 'beginner' ? 'rgba(34,197,94,0.2)' : concept.level === 'intermediate' ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)',
-                          color: concept.level === 'beginner' ? '#4ade80' : concept.level === 'intermediate' ? '#fbbf24' : '#f87171',
-                          fontWeight: 600,
-                          textTransform: 'uppercase'
-                        }}>
-                          {concept.level}
-                        </span>
+                        {concept.level && (
+                          <span style={{ 
+                            fontSize: '0.75rem', 
+                            padding: '4px 8px', 
+                            borderRadius: 6, 
+                            background: concept.level === 'beginner' ? 'rgba(34,197,94,0.2)' : concept.level === 'intermediate' ? 'rgba(245,158,11,0.2)' : 'rgba(239,68,68,0.2)',
+                            color: concept.level === 'beginner' ? '#4ade80' : concept.level === 'intermediate' ? '#fbbf24' : '#f87171',
+                            fontWeight: 600,
+                            textTransform: 'uppercase'
+                          }}>
+                            {concept.level}
+                          </span>
+                        )}
                       </div>
                       <p style={{ fontSize: '0.9rem', color: '#94a3b8', lineHeight: 1.5 }}>
                         {concept.description}
@@ -286,46 +343,66 @@ function Home() {
                   ))}
                 </div>
 
-                {/* Mode Selection */}
-                <div style={{ background: 'rgba(17,24,22,0.8)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 16, padding: 24, backdropFilter: 'blur(12px)' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
+                {/* Mode Selection - Hide for Data Structures */}
+                {selectedSubtopic !== 'Data Structures' && (
+                <div style={{ background: 'rgba(10,15,13,0.6)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 20, padding: 32, backdropFilter: 'blur(12px)' }}>
+                  <h3 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 24, textAlign: 'center' }}>
                     Choose Your Learning Mode
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                     <button
                       onClick={() => handleModeSelection('learn')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)'
+                        e.currentTarget.style.boxShadow = '0 16px 32px rgba(16,185,129,0.4)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(16,185,129,0.3)'
+                      }}
                       style={{
-                        padding: '24px',
+                        padding: '32px 24px',
                         background: 'linear-gradient(135deg,#10b981,#059669)',
                         border: 'none',
-                        borderRadius: 12,
+                        borderRadius: 16,
                         color: '#fff',
                         cursor: 'pointer',
-                        transition: 'all 0.3s ease',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 8px 20px rgba(16,185,129,0.3)',
                       }}
                     >
-                      <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎓</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 6 }}>Learn Mode</div>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Talk with AI about the topic</div>
+                      <div style={{ fontSize: '3rem', marginBottom: 12 }}>🎓</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 8 }}>Learn Mode</div>
+                      <div style={{ fontSize: '0.9rem', opacity: 0.9, lineHeight: 1.4 }}>Talk with AI about the topic</div>
                     </button>
                     <button
                       onClick={() => handleModeSelection('quiz')}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-4px)'
+                        e.currentTarget.style.boxShadow = '0 16px 32px rgba(245,158,11,0.4)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 8px 20px rgba(245,158,11,0.3)'
+                      }}
                       style={{
-                        padding: '24px',
+                        padding: '32px 24px',
                         background: 'linear-gradient(135deg,#f59e0b,#f97316)',
                         border: 'none',
-                        borderRadius: 12,
+                        borderRadius: 16,
                         color: '#fff',
                         cursor: 'pointer',
-                        transition: 'all 0.3s ease',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        boxShadow: '0 8px 20px rgba(245,158,11,0.3)',
                       }}
                     >
-                      <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>🎯</div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 6 }}>Quiz Mode</div>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.9 }}>Test your knowledge</div>
+                      <div style={{ fontSize: '3rem', marginBottom: 12 }}>🎯</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: 8 }}>Quiz Mode</div>
+                      <div style={{ fontSize: '0.9rem', opacity: 0.9, lineHeight: 1.4 }}>Test your knowledge</div>
                     </button>
                   </div>
                 </div>
+                )}
               </>
             )}
           </div>
@@ -403,10 +480,15 @@ function Feed() {
   const [items, setItems] = useState<ContentItem[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [showTavusChat, setShowTavusChat] = useState(false)
   const isTransitioningRef = useRef(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const navigate = useNavigate()
 
   const contentTypes = useMemo(() => ['fact', 'story', 'question', 'tip', 'challenge'] as const, [])
+  
+  // Check if this is Space Exploration topic
+  const isSpaceExploration = topic === 'Space Exploration'
 
   async function fetchContent() {
     const type = contentTypes[Math.floor(Math.random() * contentTypes.length)]
@@ -470,13 +552,118 @@ function Feed() {
     setTimeout(() => (isTransitioningRef.current = false), 600)
   }
 
-  if (loading) {
+  if (loading && !isSpaceExploration) {
     return (
       <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', color: '#f1f5f9' }}>
         Generating content...
       </div>
     )
   }
+
+  // Special rendering for Space Exploration with hardcoded video
+  if (isSpaceExploration) {
+    return (
+      <>
+        {showTavusChat && (
+          <TavusChat
+            personaId="p4ba6db1543e"
+            replicaId="r13e554ebaa3"
+            conversationName="Space Exploration Chat"
+            onClose={() => {
+              setShowTavusChat(false)
+              // Unmute video when closing chat
+              if (videoRef.current) {
+                videoRef.current.muted = false
+              }
+            }}
+          />
+        )}
+        <div style={{ position: 'fixed', inset: 0, background: '#000' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.9)', borderBottom: '1px solid rgba(16,185,129,.3)', zIndex: 100 }}>
+            <h1 style={{ fontWeight: 800, color: '#f1f5f9' }}>🚀 {topic}</h1>
+            <button onClick={() => navigate('/scroll')} style={{ padding: '8px 16px', background: 'rgba(10,15,13,0.95)', border: '1px solid rgba(16,185,129,0.4)', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer' }}>
+              ← Back to Topics
+            </button>
+          </div>
+          
+          <div style={{ position: 'relative', width: '100%', height: '100%', paddingTop: 68, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Space Exploration Video */}
+            <div style={{ 
+              width: '90%', 
+              maxWidth: 900, 
+              background: '#000', 
+              borderRadius: 16, 
+              border: '2px solid rgba(16,185,129,0.3)',
+              marginBottom: 30,
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <video 
+                ref={videoRef}
+                controls
+                loop
+                playsInline
+                preload="auto"
+                style={{ 
+                  width: '100%', 
+                  height: 'auto',
+                  display: 'block',
+                  borderRadius: 14,
+                  backgroundColor: '#000'
+                }}
+                onError={(e) => console.error('Video error:', e)}
+                onLoadedData={() => console.log('Video loaded successfully')}
+              >
+                <source src="/8b551a82ac.mp4" type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+            
+            {/* Chat with AI Button */}
+            <button
+              onClick={() => {
+                setShowTavusChat(true)
+                // Mute video when opening chat
+                if (videoRef.current) {
+                  videoRef.current.muted = true
+                }
+              }}
+              style={{
+                padding: '16px 40px',
+                background: 'linear-gradient(135deg, #10b981, #059669)',
+                border: 'none',
+                borderRadius: 12,
+                color: '#fff',
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = '0 6px 25px rgba(16,185,129,0.6)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(16,185,129,0.4)'
+              }}
+            >
+              <span style={{ fontSize: '1.5rem' }}>💬</span>
+              Chat with AI About Space Exploration
+            </button>
+            
+            <p style={{ color: '#94a3b8', marginTop: 20, fontSize: '0.9rem', textAlign: 'center' }}>
+             
+            </p>
+          </div>
+        </div>
+    </>
+  )
+}
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
@@ -487,21 +674,18 @@ function Feed() {
         </button>
       </div>
       <div style={{ position: 'relative', width: '100%', height: '100%', paddingTop: 68 }}>
-        {items.map((item, i) => (
-          <div key={i} style={{ position: 'absolute', inset: 0, transform: i === currentIndex ? 'translateY(0)' : i < currentIndex ? 'translateY(-100vh)' : 'translateY(100vh)', transition: 'transform .6s ease, opacity .6s ease', display: 'grid', placeItems: 'center', opacity: i === currentIndex ? 1 : 0 }}>
-            <article style={{ background: 'rgba(10,15,13,0.95)', border: '1px solid rgba(96,165,250,.2)', borderRadius: 24, padding: 32, maxWidth: 650, width: '100%', margin: 16, color: '#f1f5f9' }}>
-              <div style={{ display: 'inline-block', padding: '8px 16px', borderRadius: 12, background: 'linear-gradient(135deg,#10b981,#059669,#047857)', fontSize: 12, fontWeight: 700, marginBottom: 16 }}>{item.type.toUpperCase()}</div>
-              <div style={{ fontSize: '1.25rem', lineHeight: 1.7 }}>{item.content}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16, borderTop: '1px solid rgba(30,40,36,.4)', paddingTop: 12 }}>
-                <span>Generated just now</span>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(30,40,36,.6)', background: 'rgba(17,17,17,.6)', color: '#94a3b8' }} onClick={() => navigator.clipboard.writeText(item.content)}>📤 Share</button>
-                  <button style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(30,40,36,.6)', background: 'rgba(17,17,17,.6)', color: '#94a3b8' }}>👍 Like</button>
-                </div>
-              </div>
-            </article>
-          </div>
-        ))}
+        {/* Only render current VoiceChat to avoid multiple WebSocket connections */}
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {items[currentIndex] && (
+            <VoiceChatWrapper 
+              key={`voice-${currentIndex}`}
+              selectedTopic={`SCROLL_CONTENT:${items[currentIndex].topic}`}
+              initialContent={items[currentIndex].content}
+              autoStart={true}
+              showMinimalUI={true}
+            />
+          )}
+        </div>
       </div>
     </div>
   )
@@ -540,13 +724,13 @@ function LearnMode() {
           <p style={{ color: '#94a3b8' }}>Have a conversation with AI about this topic</p>
         </div>
         
-        <VoiceChat selectedTopic={subtopic} />
+        <VoiceChatWrapper selectedTopic={subtopic} />
       </div>
     </div>
   )
 }
 
-// Quiz Mode - Q&A with Rating
+// Quiz Mode - Voice-based Q&A with AI Evaluation
 function QuizMode() {
   const { subtopic = '' } = useParams()
   const navigate = useNavigate()
@@ -554,77 +738,9 @@ function QuizMode() {
   // Decode the URL-encoded subtopic
   const decodedSubtopic = decodeURIComponent(subtopic)
   
-  const [questions, setQuestions] = useState<Array<{ question: string; answer: string }>>([])
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [userAnswer, setUserAnswer] = useState('')
-  const [score, setScore] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
-  const [feedback, setFeedback] = useState('')
-  const [isChecking, setIsChecking] = useState(false)
-  const [loadingQuiz, setLoadingQuiz] = useState(true)
-  
-  // Load quiz questions on mount
-  useEffect(() => {
-    ;(async () => {
-      try {
-        setLoadingQuiz(true)
-        // TODO: Create backend endpoint for quiz generation
-        // For now, generate questions client-side as a placeholder
-        const dummyQuestions = [
-          { question: `What is a key concept in ${subtopic}?`, answer: 'Sample answer 1' },
-          { question: `Explain an important aspect of ${subtopic}`, answer: 'Sample answer 2' },
-          { question: `How does ${subtopic} work?`, answer: 'Sample answer 3' },
-          { question: `What are the benefits of ${subtopic}?`, answer: 'Sample answer 4' },
-          { question: `Describe a use case for ${subtopic}`, answer: 'Sample answer 5' },
-        ]
-        setQuestions(dummyQuestions)
-      } catch (error) {
-        console.error('Failed to load quiz:', error)
-      } finally {
-        setLoadingQuiz(false)
-      }
-    })()
-  }, [subtopic])
-  
-  async function submitAnswer() {
-    if (!userAnswer.trim()) return
-    
-    setIsChecking(true)
-    try {
-      // TODO: Create backend endpoint for answer evaluation
-      // For now, simulate evaluation client-side
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const isCorrect = userAnswer.toLowerCase().includes('sample') || userAnswer.length > 20
-      const newScore = isCorrect ? score + 1 : score
-      
-      setScore(newScore)
-      setFeedback(isCorrect 
-        ? '✅ Great answer! You demonstrated good understanding.' 
-        : '❌ Not quite. Consider reviewing the concept again.')
-    } catch (error) {
-      console.error('Failed to submit answer:', error)
-      setFeedback('⚠️ Error evaluating answer. Please try again.')
-    } finally {
-      setIsChecking(false)
-    }
-  }
-  
-  function nextQuestion() {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(prev => prev + 1)
-      setUserAnswer('')
-      setFeedback('')
-    } else {
-      setIsComplete(true)
-    }
-  }
-  
-  const rating = isComplete ? Math.round((score / questions.length) * 100) : 0
-  
   return (
     <div style={{ minHeight: '100vh', padding: '80px 20px 20px' }}>
-      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <button
           onClick={() => navigate('/')}
           style={{
@@ -644,120 +760,10 @@ function QuizMode() {
           <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f1f5f9', marginBottom: 12 }}>
             🎯 Quiz: {decodedSubtopic}
           </h1>
-          <p style={{ color: '#94a3b8' }}>Question {currentQuestion + 1} of {questions.length}</p>
+          <p style={{ color: '#94a3b8' }}>Voice-powered quiz with AI evaluation and personalized feedback</p>
         </div>
         
-        {loadingQuiz ? (
-          <div style={{ display: 'grid', placeItems: 'center', minHeight: 400, color: '#94a3b8' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div className="dot-pulse" style={{ marginBottom: 12 }}></div>
-              <p>Loading quiz questions...</p>
-            </div>
-          </div>
-        ) : !isComplete ? (
-          questions.length > 0 ? (
-            <div style={{ background: 'rgba(17,24,22,0.8)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 20, padding: 32, backdropFilter: 'blur(12px)' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#f1f5f9', marginBottom: 24, lineHeight: 1.5 }}>
-                {questions[currentQuestion].question}
-              </h2>
-              
-              <textarea
-                value={userAnswer}
-                onChange={(e) => setUserAnswer(e.target.value)}
-                placeholder="Type your answer here..."
-                style={{
-                  width: '100%',
-                  minHeight: 120,
-                  padding: 16,
-                  background: 'rgba(17,24,22,0.8)',
-                  border: '1px solid rgba(16,185,129,0.3)',
-                  borderRadius: 12,
-                  color: '#f1f5f9',
-                  fontSize: '1rem',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                }}
-              />
-              
-              {feedback && (
-                <div style={{ marginTop: 16, padding: 16, background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 12, color: '#cbd5e1' }}>
-                  {feedback}
-                </div>
-              )}
-              
-              <div style={{ marginTop: 24, display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                {!feedback ? (
-                  <button
-                    onClick={submitAnswer}
-                    disabled={!userAnswer.trim() || isChecking}
-                    style={{
-                      padding: '12px 24px',
-                      background: 'linear-gradient(135deg,#10b981,#059669)',
-                      border: 'none',
-                      borderRadius: 12,
-                      color: '#fff',
-                      fontWeight: 600,
-                      cursor: userAnswer.trim() && !isChecking ? 'pointer' : 'not-allowed',
-                      opacity: userAnswer.trim() && !isChecking ? 1 : 0.5,
-                    }}
-                  >
-                    {isChecking ? 'Checking...' : 'Submit Answer'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={nextQuestion}
-                    style={{
-                      padding: '12px 24px',
-                      background: 'linear-gradient(135deg,#f59e0b,#f97316)',
-                      border: 'none',
-                      borderRadius: 12,
-                      color: '#fff',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {currentQuestion < questions.length - 1 ? 'Next Question →' : 'See Results'}
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-              <div className="dot-pulse" style={{ marginBottom: 16 }}></div>
-              <p>Generating quiz questions...</p>
-            </div>
-          )
-        ) : (
-          <div style={{ background: 'rgba(17,24,22,0.8)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 20, padding: 48, backdropFilter: 'blur(12px)', textAlign: 'center' }}>
-            <h2 style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f1f5f9', marginBottom: 16 }}>
-              Quiz Complete! 🎉
-            </h2>
-            <div style={{ fontSize: '4rem', fontWeight: 800, color: rating >= 80 ? '#4ade80' : rating >= 60 ? '#fbbf24' : '#f87171', marginBottom: 16 }}>
-              {rating}%
-            </div>
-            <p style={{ fontSize: '1.2rem', color: '#cbd5e1', marginBottom: 8 }}>
-              You scored {score} out of {questions.length}
-            </p>
-            <p style={{ color: '#94a3b8', marginBottom: 32 }}>
-              {rating >= 80 ? 'Excellent work!' : rating >= 60 ? 'Good job! Keep learning.' : 'Keep practicing!'}
-            </p>
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                padding: '12px 24px',
-                background: 'linear-gradient(135deg,#10b981,#059669)',
-                border: 'none',
-                borderRadius: 12,
-                color: '#fff',
-                fontSize: '1rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              Back to Topics
-            </button>
-          </div>
-        )}
+        <VoiceChatWrapper selectedTopic={`QUIZ:${subtopic}`} />
       </div>
     </div>
   )
@@ -772,6 +778,7 @@ export default function App() {
         <Route path="/learn/:subtopic" element={<LearnMode />} />
         <Route path="/quiz/:subtopic" element={<QuizMode />} />
         <Route path="/feed/:topic" element={<Feed />} />
+        <Route path="/challenge/:challengeId" element={<CodingChallenge />} />
       </Routes>
     </BrowserRouter>
   )
