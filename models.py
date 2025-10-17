@@ -39,3 +39,20 @@ class LearningSession(Base):
     def __repr__(self):
         return f"<LearningSession(subtopic='{self.subtopic}', mode='{self.mode}')>"
 
+
+class ScrollContent(Base):
+    """
+    Model for caching generated scroll feed content.
+    Stores content for each topic and type to avoid regenerating.
+    """
+    __tablename__ = "scroll_contents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    topic = Column(String(255), index=True, nullable=False)
+    content_type = Column(String(50), index=True, nullable=False)  # 'fact', 'story', 'question', etc.
+    content = Column(Text, nullable=False)  # The generated content text
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def __repr__(self):
+        return f"<ScrollContent(topic='{self.topic}', type='{self.content_type}')>"
+

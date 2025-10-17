@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipecat Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0a0f0d;
+            color: #f1f5f9;
+            padding: 20px;
+        }
+        .status {
+            background: rgba(17,24,22,0.95);
+            border: 1px solid rgba(16,185,129,0.3);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 10px 0;
+        }
+        .success { border-color: #10b981; }
+        .error { border-color: #ef4444; }
+        button {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { opacity: 0.9; }
+        #logs {
+            background: rgba(10,15,13,0.8);
+            border: 1px solid rgba(16,185,129,0.2);
+            border-radius: 8px;
+            padding: 16px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Pipecat Integration Test</h1>
+    
+    <div class="status">
+        <h3>Server Status</h3>
+        <div id="pipecat-status">Checking Pipecat server...</div>
+        <div id="legacy-status">Checking Legacy server...</div>
+    </div>
+
+    <div class="status">
+        <h3>Test Actions</h3>
+        <button onclick="testPipecatConnection()">Test Pipecat Connection</button>
+        <button onclick="testLegacyConnection()">Test Legacy Connection</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="status">
+        <h3>Console Logs</h3>
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logs = document.getElementById('logs');
+            const timestamp = new Date().toLocaleTimeString();
+            logs.innerHTML += `[${timestamp}] ${message}\n`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testPipecatConnection() {
+            log('🧪 Testing Pipecat connection...');
+            try {
+                const response = await fetch('http://localhost:7860/status');
+                const data = await response.json();
+                log(`✅ Pipecat server: ${data.status} (${data.active_bots} bots)`);
+                
+                // Test connection endpoint
+                const connectResponse = await fetch('http://localhost:7860/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        bot_type: 'general',
+                        topic: 'Test Topic',
+                        concept: 'Test Concept'
+                    })
+                });
+                
+                if (connectResponse.ok) {
+                    const connectData = await connectResponse.json();
+                    log(`✅ Pipecat connection successful: Room ${connectData.room_url.split('/').pop()}`);
+                } else {
+                    log(`❌ Pipecat connection failed: ${connectResponse.status}`);
+                }
+            } catch (error) {
+                log(`❌ Pipecat test failed: ${error.message}`);
+            }
+        }
+
+        async function testLegacyConnection() {
+            log('🧪 Testing Legacy connection...');
+            try {
+                const response = await fetch('http://localhost:5000/api/get-api-key');
+                const data = await response.json();
+                log(`✅ Legacy server: API key available`);
+            } catch (error) {
+                log(`❌ Legacy test failed: ${error.message}`);
+            }
+        }
+
+        // Check server status on load
+        window.onload = async function() {
+            log('🚀 Starting server status checks...');
+            
+            // Check Pipecat
+            try {
+                const pipecatResponse = await fetch('http://localhost:7860/status');
+                const pipecatData = await pipecatResponse.json();
+                document.getElementById('pipecat-status').innerHTML = 
+                    `✅ Pipecat Server: ${pipecatData.status} (${pipecatData.active_bots} bots)`;
+                document.getElementById('pipecat-status').className = 'status success';
+            } catch (error) {
+                document.getElementById('pipecat-status').innerHTML = 
+                    `❌ Pipecat Server: ${error.message}`;
+                document.getElementById('pipecat-status').className = 'status error';
+            }
+
+            // Check Legacy
+            try {
+                const legacyResponse = await fetch('http://localhost:5000/api/get-api-key');
+                const legacyData = await legacyResponse.json();
+                document.getElementById('legacy-status').innerHTML = 
+                    `✅ Legacy Server: API key available`;
+                document.getElementById('legacy-status').className = 'status success';
+            } catch (error) {
+                document.getElementById('legacy-status').innerHTML = 
+                    `❌ Legacy Server: ${error.message}`;
+                document.getElementById('legacy-status').className = 'status error';
+            }
+        };
+    </script>
+</body>
+</html>
+
+

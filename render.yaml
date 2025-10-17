@@ -1,0 +1,24 @@
+services:
+  # Web service for the FastAPI backend + frontend
+  - type: web
+    name: phronesis
+    runtime: python
+    region: oregon
+    plan: free
+    branch: master
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DAILY_API_KEY
+        sync: false
+      - key: TAVUS_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: NODE_VERSION
+        value: 18.20.8
+    healthCheckPath: /api/topics
+    autoDeploy: true
+

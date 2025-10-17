@@ -41,14 +41,23 @@ def startup_event():
 startup_event()
 
 # Configure CORS
+# Allow both development and production origins
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173", 
+    "http://localhost:5000",
+    "http://127.0.0.1:5000"
+]
+
+# Add production domain from environment variable
+production_url = os.environ.get('RENDER_EXTERNAL_URL')
+if production_url:
+    allowed_origins.append(production_url)
+    allowed_origins.append(production_url.replace('https://', 'http://'))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173", 
-        "http://localhost:5000",
-        "http://127.0.0.1:5000"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,7 +67,8 @@ app.add_middleware(
 gemini_api_key = os.environ.get('GEMINI_API_KEY')
 if gemini_api_key:
     genai.configure(api_key=gemini_api_key)
-    model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    # Use gemini-2.5-flash
+    model = genai.GenerativeModel('gemini-2.5-flash')
 else:
     model = None
     print("Warning: GEMINI_API_KEY not found. Content generation will be disabled.")
@@ -158,16 +168,29 @@ async def get_api_key():
     return {"apiKey": api_key}
 
 @app.post("/api/generate-content")
-async def generate_content(request: ContentRequest):
-    """Generate engaging content for a specific topic"""
+async def generate_content(request: ContentRequest, db: Session = Depends(get_db)):
+    """Generate engaging content for a specific topic with caching"""
+    if not request.topic:
+        raise HTTPException(status_code=400, detail="Topic is required")
+    
+    # Try to get cached content first
+    cached_content = crud.get_scroll_content(db, request.topic, request.type)
+    if cached_content:
+        print(f"✓ Retrieved cached content for {request.topic} ({request.type})")
+        return {
+            "content": cached_content.content,
+            "type": request.type,
+            "topic": request.topic,
+            "timestamp": int(cached_content.created_at.timestamp()),
+            "cached": True
+        }
+    
+    # Generate new content if not cached
     if not model:
         raise HTTPException(
             status_code=500,
             detail="Content generation is not available. Please configure GEMINI_API_KEY."
         )
-    
-    if not request.topic:
-        raise HTTPException(status_code=400, detail="Topic is required")
     
     try:
         # Define different content types and their prompts
@@ -198,11 +221,19 @@ async def generate_content(request: ContentRequest):
         response = model.generate_content(prompt)
         content = response.text.strip()
         
+        # Store in cache
+        crud.create_scroll_content(db, request.topic, request.type, content)
+        print(f"✓ Generated and cached new content for {request.topic} ({request.type})")
+        
+        # Cleanup: keep only 5 most recent contents per topic/type
+        crud.delete_old_scroll_contents(db, keep_count=5)
+        
         return {
             "content": content,
             "type": request.type,
             "topic": request.topic,
-            "timestamp": int(time.time())
+            "timestamp": int(time.time()),
+            "cached": False
         }
         
     except Exception as e:
@@ -426,8 +457,97 @@ Important: Emphasize that you are a specialized tutor for {subtopic} specificall
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate explanation: {str(e)}")
 
+@app.post('/api/generate-code-solution')
+async def generate_code_solution(request: dict):
+    """Generate a code solution for a coding challenge using Gemini"""
+    if not model:
+        return JSONResponse({"error": "AI model not configured"}, status_code=500)
+    
+    challenge = request.get('challenge', '')
+    description = request.get('description', '')
+    starter_code = request.get('starterCode', '')
+    
+    prompt = f"""Generate a complete, working Python solution for this coding challenge:
+
+Challenge: {challenge}
+Description: {description}
+
+Starter Code:
+{starter_code}
+
+Requirements:
+- Provide ONLY the Python code (no explanations, no markdown)
+- Keep the same function structure as the starter code
+- Include the test cases from the starter code
+- Make sure the solution is correct and handles edge cases
+- Use clear variable names and follow Python best practices
+- DO NOT include any explanations or comments outside the code
+
+Generate the complete solution now:"""
+
+    try:
+        response = model.generate_content(prompt)
+        code = response.text.strip()
+        
+        # Clean up markdown code blocks if present
+        if code.startswith('```python'):
+            code = code.split('```python')[1].split('```')[0].strip()
+        elif code.startswith('```'):
+            code = code.split('```')[1].split('```')[0].strip()
+        
+        return {"code": code}
+    except Exception as e:
+        print(f"Error generating code solution: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post('/api/tavus/create-conversation')
+async def create_tavus_conversation(request: dict):
+    """Create a Tavus conversation with specified persona and replica"""
+    import requests
+    
+    tavus_api_key = os.getenv('TAVUS_API_KEY')
+    if not tavus_api_key:
+        return JSONResponse({"error": "Tavus API key not configured"}, status_code=500)
+    
+    persona_id = request.get('persona_id', 'p4ba6db1543e')
+    replica_id = request.get('replica_id', 'r13e554ebaa3')
+    conversation_name = request.get('conversation_name', 'Space Exploration Chat')
+    
+    try:
+        # Create conversation using Tavus API
+        response = requests.post(
+            'https://tavusapi.com/v2/conversations',
+            headers={
+                'x-api-key': tavus_api_key,
+                'Content-Type': 'application/json'
+            },
+            json={
+                'persona_id': persona_id,
+                'replica_id': replica_id,
+                'conversation_name': conversation_name,
+                'conversational_context': 'You are an expert on space exploration. Discuss topics related to space missions, planets, astronomy, and the future of space travel.'
+            }
+        )
+        
+        if response.status_code in [200, 201]:
+            data = response.json()
+            return {
+                'conversation_url': data.get('conversation_url'),
+                'conversation_id': data.get('conversation_id'),
+                'status': 'success'
+            }
+        else:
+            print(f"Tavus API error: {response.status_code} - {response.text}")
+            return JSONResponse(
+                {"error": f"Failed to create conversation: {response.text}"}, 
+                status_code=response.status_code
+            )
+    except Exception as e:
+        print(f"Error creating Tavus conversation: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 # Serve React frontend
-frontend_path = Path(__file__).parent / "frontend" / "dist"
+frontend_path = Path(__file__).parent / "dist"
 
 @app.get("/assets/{path:path}")
 async def serve_assets(path: str):
@@ -436,6 +556,61 @@ async def serve_assets(path: str):
     if file_path.exists():
         return FileResponse(file_path)
     raise HTTPException(status_code=404, detail="Asset not found")
+
+@app.api_route("/{filename}.mp4", methods=["GET", "HEAD"])
+async def serve_video(filename: str, request: Request):
+    """Serve video files with range support for streaming"""
+    from starlette.responses import StreamingResponse
+    import os
+    
+    video_path = frontend_path / f"{filename}.mp4"
+    if not video_path.exists():
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    file_size = os.path.getsize(video_path)
+    range_header = request.headers.get("range")
+    
+    # If no range header, serve the entire file
+    if not range_header:
+        return FileResponse(
+            video_path, 
+            media_type="video/mp4",
+            headers={
+                "Accept-Ranges": "bytes",
+                "Content-Length": str(file_size)
+            }
+        )
+    
+    # Parse range header
+    byte_range = range_header.replace("bytes=", "").split("-")
+    start = int(byte_range[0]) if byte_range[0] else 0
+    end = int(byte_range[1]) if byte_range[1] else file_size - 1
+    
+    # Read the requested chunk
+    chunk_size = (end - start) + 1
+    
+    def iterfile():
+        with open(video_path, "rb") as f:
+            f.seek(start)
+            remaining = chunk_size
+            while remaining > 0:
+                read_size = min(8192, remaining)
+                data = f.read(read_size)
+                if not data:
+                    break
+                remaining -= len(data)
+                yield data
+    
+    return StreamingResponse(
+        iterfile(),
+        status_code=206,
+        media_type="video/mp4",
+        headers={
+            "Content-Range": f"bytes {start}-{end}/{file_size}",
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(chunk_size),
+        }
+    )
 
 @app.get("/{full_path:path}")
 async def serve_spa(full_path: str):
