@@ -159,13 +159,8 @@ async def get_cs_subtopics():
     """Get Computer Science subtopics"""
     return CS_SUBTOPICS
 
-@app.get("/api/get-api-key")
-async def get_api_key():
-    """Get Gemini API key for Live API (use ephemeral tokens in production)"""
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if not api_key:
-        raise HTTPException(status_code=500, detail="API key not configured")
-    return {"apiKey": api_key}
+# REMOVED: Exposed API key endpoint - SECURITY VULNERABILITY
+# The Gemini Live API client-side usage requires refactoring to use backend proxy
 
 @app.post("/api/generate-content")
 async def generate_content(request: ContentRequest, db: Session = Depends(get_db)):

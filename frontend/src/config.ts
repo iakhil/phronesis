@@ -1,14 +1,15 @@
 // Configuration for Phronesis frontend
 export const config = {
   // Use Pipecat for voice chat (set to true to enable Pipecat, false for legacy VoiceChat)
-  usePipecat: false, // Set to false to use the direct Gemini Live API
+  // NOTE: usePipecat MUST be true to keep API keys secure on the backend
+  usePipecat: true, // SECURITY: Always use Pipecat to keep API keys server-side
   
   // Pipecat server URL
   pipecatServerUrl: 'http://localhost:7860',
   
-  // Legacy VoiceChat settings
+  // Legacy VoiceChat settings (DEPRECATED - exposes API key)
   legacyVoiceChat: {
-    apiKeyEndpoint: '/api/get-api-key'
+    apiKeyEndpoint: '/api/get-api-key' // REMOVED - security vulnerability
   }
 }
 
