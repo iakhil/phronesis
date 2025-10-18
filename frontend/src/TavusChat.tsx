@@ -4,6 +4,7 @@ interface TavusChatProps {
   personaId?: string
   replicaId?: string
   conversationName?: string
+  customGreeting?: string
   onClose?: () => void
 }
 
@@ -11,6 +12,7 @@ export default function TavusChat({
   personaId = 'p4ba6db1543e', 
   replicaId = 'r13e554ebaa3',
   conversationName = 'Space Exploration Chat',
+  customGreeting,
   onClose 
 }: TavusChatProps) {
   const [conversationUrl, setConversationUrl] = useState<string | null>(null)
@@ -26,14 +28,26 @@ export default function TavusChat({
     setError(null)
     
     try {
+      const requestBody: {
+        persona_id: string
+        replica_id: string
+        conversation_name: string
+        custom_greeting?: string
+      } = {
+        persona_id: personaId,
+        replica_id: replicaId,
+        conversation_name: conversationName
+      }
+      
+      // Only add custom_greeting if it's provided
+      if (customGreeting) {
+        requestBody.custom_greeting = customGreeting
+      }
+      
       const response = await fetch('/api/tavus/create-conversation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          persona_id: personaId,
-          replica_id: replicaId,
-          conversation_name: conversationName
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {
@@ -197,7 +211,7 @@ export default function TavusChat({
           fontSize: '1.3rem',
           fontWeight: 700 
         }}>
-          🚀 Space Exploration AI Chat
+          Space Exploration AI Chat
         </h2>
         {onClose && (
           <button

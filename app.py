@@ -512,8 +512,21 @@ async def create_tavus_conversation(request: dict):
     persona_id = request.get('persona_id', 'p4ba6db1543e')
     replica_id = request.get('replica_id', 'r13e554ebaa3')
     conversation_name = request.get('conversation_name', 'Space Exploration Chat')
+    custom_greeting = request.get('custom_greeting')
     
     try:
+        # Build the request payload
+        payload = {
+            'persona_id': persona_id,
+            'replica_id': replica_id,
+            'conversation_name': conversation_name,
+            'conversational_context': 'You are an expert on space exploration. Discuss topics related to space missions, planets, astronomy, and the future of space travel.'
+        }
+        
+        # Add custom_greeting if provided
+        if custom_greeting:
+            payload['custom_greeting'] = custom_greeting
+        
         # Create conversation using Tavus API
         response = requests.post(
             'https://tavusapi.com/v2/conversations',
@@ -521,12 +534,7 @@ async def create_tavus_conversation(request: dict):
                 'x-api-key': tavus_api_key,
                 'Content-Type': 'application/json'
             },
-            json={
-                'persona_id': persona_id,
-                'replica_id': replica_id,
-                'conversation_name': conversation_name,
-                'conversational_context': 'You are an expert on space exploration. Discuss topics related to space missions, planets, astronomy, and the future of space travel.'
-            }
+            json=payload
         )
         
         if response.status_code in [200, 201]:

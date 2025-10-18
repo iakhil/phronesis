@@ -38,7 +38,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               transition: 'all 0.3s ease',
             }}
           >
-            🏠 Home
+            Home
           </button>
           <button
             onClick={() => navigate('/scroll')}
@@ -55,7 +55,7 @@ function Layout({ children }: { children: React.ReactNode }) {
               transition: 'all 0.3s ease',
             }}
           >
-            📱 Scroll
+            Scroll
         </button>
         </div>
       </nav>
@@ -451,15 +451,47 @@ function ScrollPage() {
           <div key={category} style={{ border: '1px solid rgba(16,185,129,.3)', borderRadius: 16, padding: 24, background: 'rgba(15,23,42,.6)', backdropFilter: 'blur(12px)' }}>
             <h3 style={{ marginBottom: 16, color: '#f1f5f9', fontWeight: 600 }}>{category}</h3>
             <div style={{ display: 'grid', gap: 12 }}>
-              {topics.map((t) => (
-                <button
-                  key={t}
-                  onClick={() => navigate(`/feed/${encodeURIComponent(t)}`)}
-                  style={{ textAlign: 'left', padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(30,40,36,.6)', background: 'rgba(51,65,85,.4)', color: '#cbd5e1', cursor: 'pointer', transition: 'all 0.3s ease' }}
-                >
-                  {t}
-                </button>
-              ))}
+              {topics.map((t) => {
+                const isSpaceExploration = t === 'Space Exploration'
+                const isDisabled = !isSpaceExploration
+                
+                return (
+                  <button
+                    key={t}
+                    onClick={() => isSpaceExploration && navigate(`/feed/${encodeURIComponent(t)}`)}
+                    disabled={isDisabled}
+                    style={{ 
+                      textAlign: 'left', 
+                      padding: '12px 16px', 
+                      borderRadius: 12, 
+                      border: isDisabled ? '1px solid rgba(71,85,105,0.3)' : '1px solid rgba(30,40,36,.6)', 
+                      background: isDisabled ? 'rgba(30,41,59,0.3)' : 'rgba(51,65,85,.4)', 
+                      color: isDisabled ? '#64748b' : '#cbd5e1', 
+                      cursor: isDisabled ? 'not-allowed' : 'pointer', 
+                      transition: 'all 0.3s ease',
+                      opacity: isDisabled ? 0.5 : 1,
+                      position: 'relative',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span>{t}</span>
+                    {isDisabled && (
+                      <span style={{
+                        fontSize: '0.75rem',
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        background: 'rgba(100,116,139,0.3)',
+                        color: '#94a3b8',
+                        fontWeight: 600
+                      }}>
+                        Coming Soon
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
           </div>
         ))}
@@ -489,6 +521,34 @@ function Feed() {
   
   // Check if this is Space Exploration topic
   const isSpaceExploration = topic === 'Space Exploration'
+  
+  // Space Exploration videos
+  const spaceVideos = useMemo(() => [
+    '/8b551a82ac.mp4',
+    '/198351f420.mp4',
+    '/9f1e78cb22.mp4'
+  ], [])
+  
+  // Persona and Replica mappings for each video
+  const videoPersonaMapping = useMemo(() => [
+    { 
+      personaId: 'p4ba6db1543e', 
+      replicaId: 'r13e554ebaa3',
+      customGreeting: 'Great to have you here. Would you like a history of the Voyager space mission?'
+    }, // 8b551a82ac.mp4
+    { 
+      personaId: 'p5337ca54273', 
+      replicaId: 'r6ae5b6efc9d',
+      customGreeting: 'Glad to see you here. Do you want to learn more about Europa?'
+    }, // 198351f420.mp4
+    { 
+      personaId: 'p4082dcb763c', 
+      replicaId: 'rdc96ac37313',
+      customGreeting: 'Singing black holes, pretty cool, right? Want to learn more about blackholes?'
+    }  // 9f1e78cb22.mp4
+  ], [])
+  
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
 
   async function fetchContent() {
     const type = contentTypes[Math.floor(Math.random() * contentTypes.length)]
@@ -522,12 +582,33 @@ function Feed() {
     function handleWheel(e: WheelEvent) {
       if (isTransitioningRef.current) return
       e.preventDefault()
-      if (e.deltaY > 0) next()
-      else prev()
+      
+      // Handle Space Exploration video scrolling
+      if (isSpaceExploration) {
+        if (e.deltaY > 0) {
+          // Next video
+          if (currentVideoIndex < spaceVideos.length - 1) {
+            isTransitioningRef.current = true
+            setCurrentVideoIndex(prev => prev + 1)
+            setTimeout(() => (isTransitioningRef.current = false), 600)
+          }
+        } else {
+          // Previous video
+          if (currentVideoIndex > 0) {
+            isTransitioningRef.current = true
+            setCurrentVideoIndex(prev => prev - 1)
+            setTimeout(() => (isTransitioningRef.current = false), 600)
+          }
+        }
+      } else {
+        // Regular content scrolling
+        if (e.deltaY > 0) next()
+        else prev()
+      }
     }
     window.addEventListener('wheel', handleWheel, { passive: false })
     return () => window.removeEventListener('wheel', handleWheel as any)
-  }, [currentIndex, items.length])
+  }, [currentIndex, items.length, isSpaceExploration, currentVideoIndex, spaceVideos.length])
 
   function next() {
     if (currentIndex < items.length - 1) {
@@ -562,12 +643,15 @@ function Feed() {
 
   // Special rendering for Space Exploration with hardcoded video
   if (isSpaceExploration) {
+    const currentPersona = videoPersonaMapping[currentVideoIndex]
+    
     return (
       <>
         {showTavusChat && (
           <TavusChat
-            personaId="p4ba6db1543e"
-            replicaId="r13e554ebaa3"
+            personaId={currentPersona.personaId}
+            replicaId={currentPersona.replicaId}
+            customGreeting={currentPersona.customGreeting}
             conversationName="Space Exploration Chat"
             onClose={() => {
               setShowTavusChat(false)
@@ -590,33 +674,164 @@ function Feed() {
             {/* Space Exploration Video */}
             <div style={{ 
               width: '90%', 
-              maxWidth: 900, 
+              maxWidth: currentVideoIndex === 0 ? 1200 : 900,
               background: '#000', 
               borderRadius: 16, 
               border: '2px solid rgba(16,185,129,0.3)',
               marginBottom: 30,
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: currentVideoIndex === 0 ? 500 : 'auto'
             }}>
               <video 
+                key={spaceVideos[currentVideoIndex]}
                 ref={videoRef}
                 controls
                 loop
                 playsInline
                 preload="auto"
+                autoPlay
                 style={{ 
-                  width: '100%', 
-                  height: 'auto',
+                  width: currentVideoIndex === 0 ? '100%' : '100%', 
+                  height: currentVideoIndex === 0 ? 'auto' : 'auto',
+                  maxHeight: currentVideoIndex === 0 ? '70vh' : 'none',
                   display: 'block',
                   borderRadius: 14,
-                  backgroundColor: '#000'
+                  backgroundColor: '#000',
+                  objectFit: 'contain'
                 }}
                 onError={(e) => console.error('Video error:', e)}
                 onLoadedData={() => console.log('Video loaded successfully')}
               >
-                <source src="/8b551a82ac.mp4" type="video/mp4" />
+                <source src={spaceVideos[currentVideoIndex]} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
+              
+              {/* Video counter indicator */}
+              <div style={{
+                position: 'absolute',
+                bottom: 20,
+                right: 20,
+                background: 'rgba(0,0,0,0.8)',
+                padding: '8px 16px',
+                borderRadius: 8,
+                color: '#10b981',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                border: '1px solid rgba(16,185,129,0.3)'
+              }}>
+                {currentVideoIndex + 1} / {spaceVideos.length}
+              </div>
+              
+              {/* Scroll hint */}
+              {currentVideoIndex === 0 && (
+                <div style={{
+                  position: 'absolute',
+                  bottom: 60,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'rgba(16,185,129,0.9)',
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  color: '#fff',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  animation: 'pulse 2s ease-in-out infinite'
+                }}>
+             
+                </div>
+              )}
+              
+              {/* Navigation Arrows */}
+              {currentVideoIndex > 0 && (
+                <button
+                  onClick={() => {
+                    if (!isTransitioningRef.current) {
+                      isTransitioningRef.current = true
+                      setCurrentVideoIndex(prev => prev - 1)
+                      setTimeout(() => (isTransitioningRef.current = false), 600)
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: 20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '50%',
+                    width: 44,
+                    height: 44,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    backdropFilter: 'blur(12px)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(16,185,129,0.15)'
+                    e.currentTarget.style.borderColor = 'rgba(16,185,129,0.4)'
+                    e.currentTarget.style.transform = 'translateY(-50%) translateY(-2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.3)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                    e.currentTarget.style.transform = 'translateY(-50%)'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 12L8 4M8 4L4 8M8 4L12 8" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+              
+              {currentVideoIndex < spaceVideos.length - 1 && (
+                <button
+                  onClick={() => {
+                    if (!isTransitioningRef.current) {
+                      isTransitioningRef.current = true
+                      setCurrentVideoIndex(prev => prev + 1)
+                      setTimeout(() => (isTransitioningRef.current = false), 600)
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: 20,
+                    bottom: 20,
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '50%',
+                    width: 44,
+                    height: 44,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                    backdropFilter: 'blur(12px)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(16,185,129,0.15)'
+                    e.currentTarget.style.borderColor = 'rgba(16,185,129,0.4)'
+                    e.currentTarget.style.transform = 'translateY(2px)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(0,0,0,0.3)'
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 4L8 12M8 12L12 8M8 12L4 8" stroke="rgba(255,255,255,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
             </div>
             
             {/* Chat with AI Button */}
@@ -629,31 +844,28 @@ function Feed() {
                 }
               }}
               style={{
-                padding: '16px 40px',
-                background: 'linear-gradient(135deg, #10b981, #059669)',
-                border: 'none',
-                borderRadius: 12,
-                color: '#fff',
-                fontSize: '1.2rem',
-                fontWeight: 700,
+                padding: '12px 32px',
+                background: 'rgba(16,185,129,0.12)',
+                border: '1px solid rgba(16,185,129,0.3)',
+                borderRadius: 8,
+                color: '#10b981',
+                fontSize: '0.95rem',
+                fontWeight: 500,
                 cursor: 'pointer',
-                boxShadow: '0 4px 20px rgba(16,185,129,0.4)',
-                transition: 'all 0.3s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12
+                boxShadow: 'none',
+                transition: 'all 0.2s ease',
+                backdropFilter: 'blur(8px)'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 6px 25px rgba(16,185,129,0.6)'
+                e.currentTarget.style.background = 'rgba(16,185,129,0.18)'
+                e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(16,185,129,0.4)'
+                e.currentTarget.style.background = 'rgba(16,185,129,0.12)'
+                e.currentTarget.style.borderColor = 'rgba(16,185,129,0.3)'
               }}
             >
-              <span style={{ fontSize: '1.5rem' }}>💬</span>
-              Chat with AI About Space Exploration
+              Chat About Space Exploration
             </button>
             
             <p style={{ color: '#94a3b8', marginTop: 20, fontSize: '0.9rem', textAlign: 'center' }}>
