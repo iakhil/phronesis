@@ -159,8 +159,13 @@ async def get_cs_subtopics():
     """Get Computer Science subtopics"""
     return CS_SUBTOPICS
 
-# REMOVED: Exposed API key endpoint - SECURITY VULNERABILITY
-# The Gemini Live API client-side usage requires refactoring to use backend proxy
+@app.get("/api/get-api-key")
+async def get_api_key():
+    """Get Gemini API key for Live API (use ephemeral tokens in production)"""
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        raise HTTPException(status_code=500, detail="API key not configured")
+    return {"apiKey": api_key}
 
 @app.post("/api/generate-content")
 async def generate_content(request: ContentRequest, db: Session = Depends(get_db)):
@@ -507,21 +512,8 @@ async def create_tavus_conversation(request: dict):
     persona_id = request.get('persona_id', 'p4ba6db1543e')
     replica_id = request.get('replica_id', 'r13e554ebaa3')
     conversation_name = request.get('conversation_name', 'Space Exploration Chat')
-    custom_greeting = request.get('custom_greeting')
     
     try:
-        # Build the request payload
-        payload = {
-            'persona_id': persona_id,
-            'replica_id': replica_id,
-            'conversation_name': conversation_name,
-            'conversational_context': 'You are an expert on space exploration. Discuss topics related to space missions, planets, astronomy, and the future of space travel.'
-        }
-        
-        # Add custom_greeting if provided
-        if custom_greeting:
-            payload['custom_greeting'] = custom_greeting
-        
         # Create conversation using Tavus API
         response = requests.post(
             'https://tavusapi.com/v2/conversations',
@@ -529,7 +521,12 @@ async def create_tavus_conversation(request: dict):
                 'x-api-key': tavus_api_key,
                 'Content-Type': 'application/json'
             },
-            json=payload
+            json={
+                'persona_id': persona_id,
+                'replica_id': replica_id,
+                'conversation_name': conversation_name,
+                'conversational_context': 'You are an expert on space exploration. Discuss topics related to space missions, planets, astronomy, and the future of space travel.'
+            }
         )
         
         if response.status_code in [200, 201]:
@@ -554,10 +551,18 @@ frontend_path = Path(__file__).parent / "dist"
 
 @app.get("/assets/{path:path}")
 async def serve_assets(path: str):
-    """Serve static assets"""
+    """Serve static assets with cache-busting headers"""
     file_path = frontend_path / "assets" / path
     if file_path.exists():
-        return FileResponse(file_path)
+        # Add cache-busting headers for JavaScript files
+        headers = {}
+        if path.endswith('.js'):
+            headers = {
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        return FileResponse(file_path, headers=headers)
     raise HTTPException(status_code=404, detail="Asset not found")
 
 @app.api_route("/{filename}.mp4", methods=["GET", "HEAD"])

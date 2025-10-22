@@ -105,18 +105,61 @@ export default function VoiceChat({ selectedTopic, initialContent, autoStart = f
 
   // Get API key from backend
   const [apiKey, setApiKey] = useState<string | null>(null)
+  const [apiKeyLoading, setApiKeyLoading] = useState(true)
+  const [apiKeyError, setApiKeyError] = useState<string | null>(null)
+  
+  // Fetch API key from backend
+  const fetchApiKey = async () => {
+    try {
+      setApiKeyLoading(true)
+      setApiKeyError(null)
+      
+      console.log('[API Key] Fetching API key from backend...')
+      
+      const response = await fetch('/api/get-api-key', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Add cache busting
+        cache: 'no-cache'
+      })
+      
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      
+      if (!data.apiKey) {
+        throw new Error('Backend returned empty API key')
+      }
+      
+      console.log('[API Key] Successfully fetched API key from backend')
+      setApiKey(data.apiKey)
+      setApiKeyError(null)
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[API Key] Failed to fetch API key:', errorMessage)
+      setApiKeyError(errorMessage)
+      
+      // Fallback: prompt user for API key
+      const userKey = prompt(`Failed to get API key from backend (${errorMessage}). Please enter your Gemini API key manually:`)
+      if (userKey && userKey.trim()) {
+        console.log('[API Key] Using manually entered API key')
+        setApiKey(userKey.trim())
+        setApiKeyError(null)
+      } else {
+        console.error('[API Key] No API key provided by user')
+      }
+    } finally {
+      setApiKeyLoading(false)
+    }
+  }
   
   useEffect(() => {
-    // For development, you can fetch the API key from your backend
-    // In production, use ephemeral tokens instead
-    fetch('/api/get-api-key')
-      .then(res => res.json())
-      .then(data => setApiKey(data.apiKey))
-      .catch(() => {
-        // If endpoint doesn't exist, prompt user or use env var
-        const key = prompt('Enter your Gemini API key (or add /api/get-api-key endpoint):')
-        if (key) setApiKey(key)
-      })
+    fetchApiKey()
   }, [])
 
   // Fetch curriculum explanation from backend (skip for quiz, learn more, scroll content, and code review modes)
@@ -163,7 +206,7 @@ export default function VoiceChat({ selectedTopic, initialContent, autoStart = f
       const ai = new GoogleGenAI({ apiKey })
       
       // Use the new native audio model
-      const model = 'gemini-2.5-flash-preview-native-audio-dialog'
+      const model = 'gemini-2.0-flash-exp'
       
       const config = {
         responseModalities: [Modality.AUDIO],
@@ -337,6 +380,9 @@ Teaching Style:
 Remember: You are a focused, educational tutor for ${subject}. Provide clear explanations and answer questions directly.`
       }
 
+      console.log('[Gemini Live] Starting session with model:', model)
+      console.log('[Gemini Live] API Key present:', !!apiKey)
+      
       const session = await ai.live.connect({
         model: model,
         callbacks: {
@@ -478,13 +524,26 @@ After explaining the topic, end by asking: "Do you have any questions?"`
           },
           onerror: (error: any) => {
             console.error('[Gemini Live] Error:', error)
+            console.error('[Gemini Live] Error details:', JSON.stringify(error, null, 2))
             setConnected(false)
             setSessionActive(false)
+            setIsListening(false)
+            
+            // Don't try to reconnect automatically to prevent spam
+            console.log('[Gemini Live] Session error - manual restart required')
           },
           onclose: (event: any) => {
             console.log('[Gemini Live] Session closed:', event)
+            console.log('[Gemini Live] Close event details:', JSON.stringify(event, null, 2))
             setConnected(false)
             setSessionActive(false)
+            setIsListening(false)
+            
+            // Clean up audio context on close
+            if (audioContextRef.current) {
+              audioContextRef.current.close()
+              audioContextRef.current = null
+            }
           }
         },
         config: config
@@ -692,18 +751,23 @@ After explaining the topic, end by asking: "Do you have any questions?"`
 
   // Stop the session and cleanup
   function stopSession() {
+    console.log('[Gemini Live] Stopping session...')
+    
     // Stop microphone
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop())
       mediaStreamRef.current = null
     }
 
-    // Close Gemini session
+    // Close Gemini session properly
     if (sessionRef.current) {
       try {
-        sessionRef.current.disconnect?.()
+        // Check if session is still open before trying to close
+        if (sessionRef.current.readyState === WebSocket.OPEN || sessionRef.current.readyState === WebSocket.CONNECTING) {
+          sessionRef.current.close()
+        }
       } catch (error) {
-        console.error('[Gemini Live] Error disconnecting:', error)
+        console.error('[Gemini Live] Error closing session:', error)
       }
       sessionRef.current = null
     }
@@ -724,11 +788,30 @@ After explaining the topic, end by asking: "Do you have any questions?"`
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (sessionRef.current) {
-        sessionRef.current.close()
-      }
+      console.log('[Gemini Live] Component unmounting, cleaning up...')
+      
+      // Stop microphone
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop())
+        mediaStreamRef.current = null
+      }
+      
+      // Close session if it exists
+      if (sessionRef.current) {
+        try {
+          if (sessionRef.current.readyState === WebSocket.OPEN || sessionRef.current.readyState === WebSocket.CONNECTING) {
+            sessionRef.current.close()
+          }
+        } catch (error) {
+          console.error('[Gemini Live] Error closing session on unmount:', error)
+        }
+        sessionRef.current = null
+      }
+      
+      // Clean up audio context
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+        audioContextRef.current = null
       }
     }
   }, [])
@@ -887,21 +970,55 @@ After explaining the topic, end by asking: "Do you have any questions?"`
           gap: 8,
           padding: '6px 12px',
           borderRadius: 20,
-          background: connected ? 'rgba(34,197,94,0.2)' : 'rgba(148,163,184,0.2)',
-          border: connected ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(148,163,184,0.4)'
+          background: apiKeyError ? 'rgba(239,68,68,0.2)' : apiKeyLoading ? 'rgba(245,158,11,0.2)' : connected ? 'rgba(34,197,94,0.2)' : 'rgba(148,163,184,0.2)',
+          border: apiKeyError ? '1px solid rgba(239,68,68,0.4)' : apiKeyLoading ? '1px solid rgba(245,158,11,0.4)' : connected ? '1px solid rgba(34,197,94,0.4)' : '1px solid rgba(148,163,184,0.4)'
         }}>
           <div style={{ 
             width: 8, 
             height: 8, 
             borderRadius: '50%', 
-            background: connected ? '#22c55e' : '#94a3b8',
-            animation: connected ? 'pulse 2s infinite' : 'none'
+            background: apiKeyError ? '#ef4444' : apiKeyLoading ? '#f59e0b' : connected ? '#22c55e' : '#94a3b8',
+            animation: apiKeyLoading ? 'pulse 2s infinite' : connected ? 'pulse 2s infinite' : 'none'
           }} />
-          <span style={{ fontSize: '0.85rem', color: connected ? '#4ade80' : '#94a3b8', fontWeight: 600 }}>
-            {connected ? 'LIVE' : apiKey ? 'Ready' : 'Waiting for API key...'}
+          <span style={{ fontSize: '0.85rem', color: apiKeyError ? '#f87171' : apiKeyLoading ? '#fbbf24' : connected ? '#4ade80' : '#94a3b8', fontWeight: 600 }}>
+            {apiKeyError ? 'API Key Error' : apiKeyLoading ? 'Loading API Key...' : connected ? 'LIVE' : apiKey ? 'Ready' : 'Waiting for API key...'}
           </span>
         </div>
       </div>
+
+      {/* API Key Error Display */}
+      {apiKeyError && (
+        <div style={{
+          padding: 12,
+          background: 'rgba(239,68,68,0.1)',
+          border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: 8,
+          color: '#ef4444',
+          fontSize: '0.85rem',
+          marginBottom: 16,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <div>
+            <strong>API Key Error:</strong> {apiKeyError}
+          </div>
+          <button
+            onClick={fetchApiKey}
+            style={{
+              padding: '4px 8px',
+              background: 'rgba(239,68,68,0.2)',
+              border: '1px solid rgba(239,68,68,0.4)',
+              borderRadius: 4,
+              color: '#ef4444',
+              fontSize: '0.75rem',
+              cursor: 'pointer'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div style={{ 
@@ -1006,7 +1123,7 @@ After explaining the topic, end by asking: "Do you have any questions?"`
       }}>
         <button
           onClick={toggleListening}
-          disabled={!apiKey || loadingExplanation}
+          disabled={!apiKey || loadingExplanation || apiKeyLoading || !!apiKeyError}
           style={{
             position: 'relative',
             width: 160,
@@ -1015,14 +1132,22 @@ After explaining the topic, end by asking: "Do you have any questions?"`
             border: isListening ? '3px solid rgba(16,185,129,0.5)' : '3px solid rgba(16,185,129,0.3)',
             background: sessionActive 
               ? 'linear-gradient(135deg,#ef4444,#dc2626)' 
+              : apiKeyError
+              ? 'linear-gradient(135deg,#ef4444,#dc2626)'
+              : apiKeyLoading
+              ? 'linear-gradient(135deg,#f59e0b,#d97706)'
               : 'linear-gradient(135deg,#10b981,#059669)',
             color: '#fff',
-            cursor: (apiKey && !loadingExplanation) ? 'pointer' : 'not-allowed',
+            cursor: (apiKey && !loadingExplanation && !apiKeyLoading && !apiKeyError) ? 'pointer' : 'not-allowed',
             transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             boxShadow: sessionActive
               ? '0 0 60px rgba(239,68,68,0.8), 0 0 120px rgba(239,68,68,0.4), 0 8px 32px rgba(0,0,0,0.4)' 
+              : apiKeyError
+              ? '0 0 50px rgba(239,68,68,0.6), 0 0 100px rgba(239,68,68,0.3), 0 8px 32px rgba(0,0,0,0.4)'
+              : apiKeyLoading
+              ? '0 0 50px rgba(245,158,11,0.6), 0 0 100px rgba(245,158,11,0.3), 0 8px 32px rgba(0,0,0,0.4)'
               : '0 0 50px rgba(16,185,129,0.6), 0 0 100px rgba(16,185,129,0.3), 0 8px 32px rgba(0,0,0,0.4)',
-            opacity: apiKey && !loadingExplanation ? 1 : 0.5,
+            opacity: (apiKey && !loadingExplanation && !apiKeyLoading && !apiKeyError) ? 1 : 0.5,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -1030,12 +1155,12 @@ After explaining the topic, end by asking: "Do you have any questions?"`
             transform: sessionActive ? 'scale(1.05)' : 'scale(1)',
           }}
           onMouseEnter={(e) => {
-            if (apiKey && !loadingExplanation) {
+            if (apiKey && !loadingExplanation && !apiKeyLoading && !apiKeyError) {
               e.currentTarget.style.transform = 'scale(1.1)'
             }
           }}
           onMouseLeave={(e) => {
-            if (apiKey && !loadingExplanation) {
+            if (apiKey && !loadingExplanation && !apiKeyLoading && !apiKeyError) {
               e.currentTarget.style.transform = sessionActive ? 'scale(1.05)' : 'scale(1)'
             }
           }}
@@ -1113,10 +1238,19 @@ After explaining the topic, end by asking: "Do you have any questions?"`
         </button>
         
           <p style={{ marginTop: 20, color: '#f1f5f9', fontSize: '1.05rem', fontWeight: 600, letterSpacing: '0.5px' }}>
-            {aiSpeaking ? '🎙️ AI Speaking... (speak to interrupt)' : sessionActive ? 'Listening... Speak anytime' : 'Click to start conversation'}
+            {apiKeyError ? '❌ API Key Error - Click Retry above' : 
+             apiKeyLoading ? '⏳ Loading API Key...' :
+             aiSpeaking ? '🎙️ AI Speaking... (speak to interrupt)' : 
+             sessionActive ? 'Listening... Speak anytime' : 
+             apiKey ? 'Click to start conversation' : 
+             'Waiting for API key...'}
           </p>
         <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: 6 }}>
-          {sessionActive ? aiSpeaking ? 'Just start talking to interrupt' : 'Click button to end conversation' : ''}
+          {apiKeyError ? 'Check the error message above and retry' :
+           apiKeyLoading ? 'Fetching API key from backend...' :
+           sessionActive ? aiSpeaking ? 'Just start talking to interrupt' : 'Click button to end conversation' : 
+           apiKey ? 'Ready to start voice chat' : 
+           'API key is required to start'}
         </p>
         
         {/* Quiz Feedback Component */}
