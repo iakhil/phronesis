@@ -105,6 +105,42 @@ print("BFS from A:", bfs(graph, 'A'))  # Expected: ['A', 'B', 'C', 'D', 'E', 'F'
       'Start by adding the start node to the queue',
       'Dequeue a node, mark it visited, and enqueue its unvisited neighbors'
     ]
+  },
+  'contains-duplicate': {
+    title: 'Contains Duplicate',
+    description: 'Given an integer array, return true if any value appears at least twice in the array, and return false if every element is distinct.',
+    difficulty: 'Easy',
+    starterCode: `def contains_duplicate(nums):
+    """
+    Check if the array contains any duplicate values.
+    
+    Args:
+        nums: List of integers
+    
+    Returns:
+        True if duplicates exist, False otherwise
+    
+    Examples:
+        contains_duplicate([1, 2, 3, 1]) -> True
+        contains_duplicate([1, 2, 3, 4]) -> False
+        contains_duplicate([1, 1, 1, 3, 3, 4, 3, 2, 4, 2]) -> True
+    """
+    # Your code here
+    pass
+
+# Test cases
+print("Test 1:", contains_duplicate([1, 2, 3, 1]))  # Expected: True
+print("Test 2:", contains_duplicate([1, 2, 3, 4]))  # Expected: False
+print("Test 3:", contains_duplicate([1, 1, 1, 3, 3, 4, 3, 2, 4, 2]))  # Expected: True
+print("Test 4:", contains_duplicate([1]))  # Expected: False
+print("Test 5:", contains_duplicate([]))  # Expected: False
+`,
+    hints: [
+      'Think about using a set to track seen numbers',
+      'If a number is already in the set, return True',
+      'Add each number to the set as you iterate',
+      'Return False if you finish iterating without finding duplicates'
+    ]
   }
 }
 
