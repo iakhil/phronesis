@@ -547,7 +547,7 @@ async def create_tavus_conversation(request: dict):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 # Serve React frontend
-frontend_path = Path(__file__).parent / "dist"
+frontend_path = Path(__file__).parent / "frontend" / "dist"
 
 @app.get("/assets/{path:path}")
 async def serve_assets(path: str):
