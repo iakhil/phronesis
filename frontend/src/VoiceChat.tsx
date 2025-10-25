@@ -206,7 +206,7 @@ export default function VoiceChat({ selectedTopic, initialContent, autoStart = f
       const ai = new GoogleGenAI({ apiKey })
       
       // Use the new native audio model
-      const model = 'gemini-2.0-flash-exp'
+      const model = 'gemini-2.5-flash-native-audio-preview-09-2025'
       
       const config = {
         responseModalities: [Modality.AUDIO],
