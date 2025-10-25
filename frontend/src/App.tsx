@@ -106,11 +106,14 @@ function Home() {
     if (subtopic === 'Data Structures') {
       setSelectedSubtopic(subtopic)
       // Set hardcoded challenges as "curriculum"
-      setCurriculum([
+      const challenges = [
         { name: '🔍 Linear Search', description: 'Learn to search through arrays sequentially' },
         { name: '🎯 Binary Search', description: 'Master the divide-and-conquer search algorithm' },
-        { name: '🌐 Breadth-First Search', description: 'Explore graph traversal with BFS' }
-      ])
+        { name: '🌐 Breadth-First Search', description: 'Explore graph traversal with BFS' },
+        { name: '🔁 Contains Duplicate', description: 'Check if an array contains duplicate values' }
+      ]
+      console.log('Setting Data Structures curriculum:', challenges)
+      setCurriculum(challenges)
       return
     }
     
@@ -156,7 +159,7 @@ function Home() {
           🧠 Phronesis
         </h1>
         <p style={{ fontSize: '1.25rem', color: '#cbd5e1', marginBottom: 8 }}>
-          Master Computer Science with AI
+         The Learn-Anything App
         </p>
         <p style={{ fontSize: '0.95rem', color: '#94a3b8' }}>
           Choose a topic, explore the curriculum, then select Learn or Quiz mode
@@ -271,7 +274,8 @@ function Home() {
                           const challengeMap: Record<string, string> = {
                             '🔍 Linear Search': 'linear-search',
                             '🎯 Binary Search': 'binary-search',
-                            '🌐 Breadth-First Search': 'breadth-first-search'
+                            '🌐 Breadth-First Search': 'breadth-first-search',
+                            '🔁 Contains Duplicate': 'contains-duplicate',
                           }
                           const challengeId = challengeMap[concept.name]
                           if (challengeId) {
