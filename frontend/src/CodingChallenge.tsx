@@ -274,8 +274,8 @@ export default function CodingChallenge() {
       </div>
 
       {/* Main Content */}
-      <div style={{ maxWidth: 1600, margin: '0 auto', padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, height: 'calc(100vh - 120px)' }}>
-        {/* Left Panel: Problem + IDE */}
+      <div style={{ maxWidth: 1600, margin: '0 auto', padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 24, height: 'calc(100vh - 120px)' }}>
+        {/* Left Panel: Problem + AI Assistant */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
           {/* Problem Description */}
           <div style={{
@@ -311,53 +311,54 @@ export default function CodingChallenge() {
             )}
           </div>
 
-          {/* Code IDE */}
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <CodeIDE
-              challengeId={challengeId}
-              initialCode={challenge.starterCode}
-              onCodeChange={setCode}
-              onRunCode={(out, err) => {
-                setOutput(out)
-                setError(err)
-              }}
-            />
+          {/* AI Voice Assistant */}
+          <div style={{
+            background: 'rgba(17,24,22,0.95)',
+            border: '1px solid rgba(16,185,129,0.3)',
+            borderRadius: 16,
+            padding: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            overflow: 'hidden'
+          }}>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>
+                Assistant
+              </h2>
+              <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                Talk to the AI about your code! It can see what you've written and help you debug, optimize, or understand the algorithm better.
+              </p>
+            </div>
+
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <VoiceChatWrapper
+                selectedTopic={`CODE_REVIEW:Data Structures/${challenge.title}`}
+                codeContext={{
+                  challenge: challenge.title,
+                  description: challenge.description,
+                  code: code,
+                  output: output,
+                  error: error
+                }}
+                onGenerateCode={generateCodeSolution}
+                isGeneratingCode={generatingCode}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Right Panel: AI Voice Assistant */}
-        <div style={{
-          background: 'rgba(17,24,22,0.95)',
-          border: '1px solid rgba(16,185,129,0.3)',
-          borderRadius: 16,
-          padding: 24,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden'
-        }}>
-          <div style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>
-              AI Code Review Assistant
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
-              Talk to the AI about your code! It can see what you've written and help you debug, optimize, or understand the algorithm better.
-            </p>
-          </div>
-
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <VoiceChatWrapper
-              selectedTopic={`CODE_REVIEW:Data Structures/${challenge.title}`}
-              codeContext={{
-                challenge: challenge.title,
-                description: challenge.description,
-                code: code,
-                output: output,
-                error: error
-              }}
-              onGenerateCode={generateCodeSolution}
-              isGeneratingCode={generatingCode}
-            />
-          </div>
+        {/* Right Panel: Code IDE */}
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <CodeIDE
+            challengeId={challengeId}
+            initialCode={challenge.starterCode}
+            onCodeChange={setCode}
+            onRunCode={(out, err) => {
+              setOutput(out)
+              setError(err)
+            }}
+          />
         </div>
       </div>
     </div>
