@@ -337,7 +337,7 @@ export default function CodingChallenge() {
         }}>
           <div style={{ marginBottom: 20 }}>
             <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>
-              🎙️ AI Code Review Assistant
+              AI Code Review Assistant
             </h2>
             <p style={{ fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.5 }}>
               Talk to the AI about your code! It can see what you've written and help you debug, optimize, or understand the algorithm better.
