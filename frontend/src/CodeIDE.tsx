@@ -108,7 +108,7 @@ export default function CodeIDE({ initialCode, onCodeChange, onRunCode }: CodeID
         alignItems: 'center'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: '1.2rem' }}>🐍</span>
+          <span style={{ fontSize: '1.2rem' }}></span>
           <div>
             <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#ffffff' }}>Python Editor</div>
             <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>
