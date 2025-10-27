@@ -285,7 +285,7 @@ export default function CodingChallenge() {
             padding: 20
           }}>
             <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#f1f5f9', marginBottom: 12 }}>
-              📋 Problem Description
+              Problem Description
             </h2>
             <p style={{ color: '#cbd5e1', lineHeight: 1.6, marginBottom: 16 }}>
               {challenge.description}
