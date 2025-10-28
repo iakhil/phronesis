@@ -138,12 +138,32 @@ export default function CodeIDE({ initialCode, onCodeChange, onRunCode }: CodeID
         </button>
       </div>
 
-      {/* Code Editor with Syntax Highlighting */}
+      {/* Code Editor with Syntax Highlighting and Line Numbers */}
       <div style={{ 
         flex: 1, 
         overflow: 'auto',
-        background: 'rgba(10,15,13,0.8)'
+        background: 'rgba(10,15,13,0.8)',
+        display: 'flex',
+        position: 'relative'
       }}>
+        {/* Line Numbers */}
+        <div style={{
+          padding: '16px 8px 16px 16px',
+          background: 'rgba(0,0,0,0.3)',
+          color: '#64748b',
+          fontSize: '0.95rem',
+          lineHeight: 1.6,
+          fontFamily: '"Fira Code", "Consolas", "Monaco", monospace',
+          userSelect: 'none',
+          minWidth: 'fit-content',
+          borderRight: '1px solid rgba(16,185,129,0.2)'
+        }}>
+          {code.split('\n').map((_, i) => (
+            <div key={i} style={{ textAlign: 'right', paddingRight: '8px' }}>
+              {i + 1}
+            </div>
+          ))}
+        </div>
         <Editor
           value={code}
           onValueChange={handleCodeChange}
@@ -154,6 +174,7 @@ export default function CodeIDE({ initialCode, onCodeChange, onRunCode }: CodeID
             fontSize: '0.95rem',
             lineHeight: 1.6,
             minHeight: '100%',
+            flex: 1,
             background: 'rgba(10,15,13,0.8)',
             color: '#f1f5f9'
           }}
