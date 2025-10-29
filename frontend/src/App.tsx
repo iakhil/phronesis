@@ -107,10 +107,11 @@ function Home() {
       setSelectedSubtopic(subtopic)
       // Set hardcoded challenges as "curriculum"
       const challenges = [
-        { name: '🔍 Linear Search', description: 'Learn to search through arrays sequentially' },
-        { name: '🎯 Binary Search', description: 'Master the divide-and-conquer search algorithm' },
-        { name: '🌐 Breadth-First Search', description: 'Explore graph traversal with BFS' },
-        { name: '🔁 Contains Duplicate', description: 'Check if an array contains duplicate values' }
+        { name: 'Linear Search', description: 'Learn to search through arrays sequentially' },
+        { name: 'Binary Search', description: 'Master the divide-and-conquer search algorithm' },
+        { name: 'Breadth-First Search', description: 'Explore graph traversal with BFS' },
+        { name: 'Contains Duplicate', description: 'Check if an array contains duplicate values' },
+        { name: 'Two Sum', description: 'Find two indices whose values sum to the target' }
       ]
       console.log('Setting Data Structures curriculum:', challenges)
       setCurriculum(challenges)
@@ -272,10 +273,11 @@ function Home() {
                         // For Data Structures, navigate directly to coding challenge
                         if (selectedSubtopic === 'Data Structures' && concept.name) {
                           const challengeMap: Record<string, string> = {
-                            '🔍 Linear Search': 'linear-search',
-                            '🎯 Binary Search': 'binary-search',
-                            '🌐 Breadth-First Search': 'breadth-first-search',
-                            '🔁 Contains Duplicate': 'contains-duplicate',
+                            'Linear Search': 'linear-search',
+                            'Binary Search': 'binary-search',
+                            ' Breadth-First Search': 'breadth-first-search',
+                            'Contains Duplicate': 'contains-duplicate',
+                            'Two Sum': 'two-sum',
                           }
                           const challengeId = challengeMap[concept.name]
                           if (challengeId) {
