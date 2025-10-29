@@ -141,6 +141,42 @@ print("Test 5:", contains_duplicate([]))  # Expected: False
       'Add each number to the set as you iterate',
       'Return False if you finish iterating without finding duplicates'
     ]
+  },
+  'two-sum': {
+    title: 'Two Sum',
+    description: 'Given an array of integers nums and an integer target, return the indices of the two numbers such that they add up to target. Assume exactly one solution and you may not use the same element twice.',
+    difficulty: 'Easy',
+    starterCode: `def two_sum(nums, target):
+    """
+    Return indices of the two numbers such that they add up to target.
+    If no solution exists, return None.
+    
+    Args:
+        nums: List of integers
+        target: Target integer sum
+    
+    Returns:
+        List[int, int] with indices in any order, or None if no solution
+    
+    Examples:
+        two_sum([2,7,11,15], 9) -> [0,1]
+    """
+    # Your code here
+    pass
+
+# Test cases
+print("Test 1:", two_sum([2,7,11,15], 9))           # Expected: [0, 1]
+print("Test 2:", two_sum([3,2,4], 6))               # Expected: [1, 2]
+print("Test 3:", two_sum([3,3], 6))                 # Expected: [0, 1]
+print("Test 4:", two_sum([-1, -2, -3, -4, -5], -8)) # Expected: [2, 4] or [3, 1] etc.
+print("Test 5:", two_sum([1], 1))                   # Expected: None
+`,
+    hints: [
+      'Use a dictionary to map number -> index as you iterate',
+      'For each number x, check if (target - x) is already in the map',
+      'Return indices as soon as you find a match',
+      'Handle negatives and duplicates correctly'
+    ]
   }
 }
 
